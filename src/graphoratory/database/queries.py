@@ -21,6 +21,16 @@ class LineRow:
 
 
 @dataclass(frozen=True, slots=True)
+class EvaluationRow:
+    evaluation_hash: str
+    workspace_hash: str
+    line_hash: str
+    created_at: str
+    baseline_name: str
+    graph_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class WorkspaceProjection:
     graph_count: int
     line_count: int
@@ -72,6 +82,35 @@ def line_graph_hashes(path: Path, line_hash: str) -> tuple[str, ...]:
             (line_hash,),
         ).fetchall()
     return tuple(str(row["graph_hash"]) for row in rows)
+
+
+def latest_evaluation(
+    path: Path,
+    line_hash: str,
+    baseline_name: str,
+) -> EvaluationRow | None:
+    with _connection(path) as connection:
+        row = connection.execute(
+            """
+            SELECT evaluation_hash, workspace_hash, line_hash, created_at,
+                   baseline_name, graph_count
+            FROM evaluations
+            WHERE line_hash = ? AND baseline_name = ?
+            ORDER BY created_at DESC, evaluation_hash DESC
+            LIMIT 1
+            """,
+            (line_hash, baseline_name),
+        ).fetchone()
+    if row is None:
+        return None
+    return EvaluationRow(
+        evaluation_hash=str(row["evaluation_hash"]),
+        workspace_hash=str(row["workspace_hash"]),
+        line_hash=str(row["line_hash"]),
+        created_at=str(row["created_at"]),
+        baseline_name=str(row["baseline_name"]),
+        graph_count=int(row["graph_count"]),
+    )
 
 
 def workspace_projection(path: Path, workspace_hash: str) -> WorkspaceProjection:
