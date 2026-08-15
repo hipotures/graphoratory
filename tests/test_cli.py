@@ -231,7 +231,10 @@ def test_baseline_rich_and_json_outputs_share_semantics(
     generate_workspace_graphs(app_config, workspace.display)
     line = create_line(app_config, workspace.display)
     _set_active_workspace(config_file, "baseline-output")
-    _install_fake_evaluator(monkeypatch)
+    _install_fake_evaluator(
+        monkeypatch,
+        RationalInterval(Fraction(1, 3), Fraction(1, 2)),
+    )
 
     json_result = runner.invoke(
         app,
@@ -248,7 +251,27 @@ def test_baseline_rich_and_json_outputs_share_semantics(
     assert payload["baseline"] in rich_text
     assert payload["line"]["id"] in rich_text
     assert str(payload["graphs"]) in rich_text
-    assert "1/2" in rich_text
+    assert payload["score"]["fitness"] == {
+        "lower": {"numerator": 1, "denominator": 3},
+        "upper": {"numerator": 1, "denominator": 2},
+    }
+    assert "[0.33333, 0.50000]" in rich_text
+    assert "Score width" in rich_text
+    assert "0.16667" in rich_text
+    assert "Exact" in rich_text
+    assert "no" in rich_text
+    assert "1 / 2 (50.0%)" in rich_text
+    assert "Episodes" in rich_text
+    assert "Proposals" in rich_text
+    assert "Score calls" in rich_text
+    assert "Episode rate" in rich_text
+    assert "graphs/s" in rich_text
+    assert "Proposal rate" in rich_text
+    assert "proposals/s" in rich_text
+    assert "Score rate" in rich_text
+    assert "calls/s" in rich_text
+    assert "Throughput" not in rich_text
+    assert "1/3" not in rich_text
     assert payload["database"] in rich_text
 
 
@@ -387,11 +410,16 @@ def _set_active_workspace(path: Path, value: str) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _install_fake_evaluator(monkeypatch: pytest.MonkeyPatch) -> None:
+def _install_fake_evaluator(
+    monkeypatch: pytest.MonkeyPatch,
+    score: RationalInterval | None = None,
+) -> None:
+    evaluation_score = score or RationalInterval(Fraction(1, 2), Fraction(1, 2))
+
     class FakeEvaluator:
         def evaluate(self, graphs, _policy):  # type: ignore[no-untyped-def]
             return EvaluationResult(
-                RationalInterval(Fraction(1, 2), Fraction(1, 2)),
+                evaluation_score,
                 EvaluationDiagnostics(
                     episodes=len(graphs),
                     graphs_by_order=tuple(

@@ -4,6 +4,8 @@ import json
 import sys
 from collections.abc import Callable, Sequence
 from datetime import datetime
+from decimal import Decimal, localcontext
+from fractions import Fraction
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -592,13 +594,24 @@ def _render_line_status(payload: dict[str, Any]) -> None:
 def _render_baseline_evaluation(payload: dict[str, Any]) -> None:
     score = payload["score"]
     fitness = score["fitness"]
-    lower = fitness["lower"]
-    upper = fitness["upper"]
-    lower_text = f"{lower['numerator']}/{lower['denominator']}"
-    upper_text = f"{upper['numerator']}/{upper['denominator']}"
+    lower = _fraction_from_payload(fitness["lower"])
+    upper = _fraction_from_payload(fitness["upper"])
+    lower_text = _format_fraction_decimal(lower)
+    upper_text = _format_fraction_decimal(upper)
     score_text = lower_text if score["exact"] else f"[{lower_text}, {upper_text}]"
     diagnostics = payload["diagnostics"]
     runtime = payload["runtime"]
+    accepted = diagnostics["accepted_rewrites"]
+    proposals = diagnostics["proposals"]
+    score_attempts = diagnostics["score_attempts"]
+    wall_seconds = runtime["wall_seconds"]
+    accepted_text = (
+        f"{accepted} / {proposals} ({accepted / proposals:.1%})"
+        if proposals
+        else f"{accepted} / 0 (—)"
+    )
+    proposal_rate = proposals / wall_seconds if wall_seconds else 0.0
+    score_rate = score_attempts / wall_seconds if wall_seconds else 0.0
     order_counts = ", ".join(
         f"{order}×{count}"
         for order, count in sorted(
@@ -614,18 +627,34 @@ def _render_baseline_evaluation(payload: dict[str, Any]) -> None:
             ("Baseline", payload["baseline"]),
             ("Line", line_label),
             ("Workspace", payload["workspace"]["id"]),
-            ("Graphs", str(payload["graphs"])),
+            ("Episodes", str(diagnostics["episodes"])),
             ("Orders", order_counts),
             ("Score", score_text),
-            ("Accepted", str(diagnostics["accepted_rewrites"])),
-            ("Score calls", str(diagnostics["score_attempts"])),
-            ("Wall time", f"{runtime['wall_seconds']:.6f} s"),
-            ("Throughput", f"{runtime['graphs_per_second']:.3f} graphs/s"),
+            ("Score width", _format_fraction_decimal(upper - lower)),
+            ("Exact", "yes" if score["exact"] else "no"),
+            ("Accepted", accepted_text),
+            ("Proposals", str(proposals)),
+            ("Score calls", str(score_attempts)),
+            ("Wall time", f"{wall_seconds:.2f} s"),
+            ("Episode rate", f"{runtime['graphs_per_second']:.1f} graphs/s"),
+            ("Proposal rate", f"{proposal_rate:.1f} proposals/s"),
+            ("Score rate", f"{score_rate:.1f} calls/s"),
             ("Peak RSS", _format_bytes(runtime["peak_rss_bytes"])),
             ("Artifact", payload["evaluation_artifact"]["hash"][:12]),
             ("Database", payload["database"]),
         ]
     )
+
+
+def _fraction_from_payload(payload: dict[str, int]) -> Fraction:
+    return Fraction(payload["numerator"], payload["denominator"])
+
+
+def _format_fraction_decimal(value: Fraction) -> str:
+    with localcontext() as context:
+        context.prec = 18
+        decimal = Decimal(value.numerator) / Decimal(value.denominator)
+    return f"{decimal:.5f}"
 
 
 def _status_table(
