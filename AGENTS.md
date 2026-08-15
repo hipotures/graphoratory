@@ -212,6 +212,21 @@ artifacts and must not introduce active-line state.
 
 Keep CLI handlers thin. Application logic belongs in reusable Python services.
 
+### CLI output contract
+
+Every leaf command must support `--json`.
+
+Build one JSON-serializable semantic payload first. The default Rich renderer must format
+that same payload for human-readable console output; do not implement separate Rich and JSON
+data paths. Preserve JSON types such as numbers, booleans, arrays, and full authoritative
+hashes instead of serializing preformatted table cells.
+
+With `--json`, successful output goes to stdout as JSON. Application and Typer parser errors
+go to stderr as one ANSI-free JSON object. Without `--json`, preserve the normal Rich/Typer
+console experience.
+
+Tests for new commands and tables must cover both the default Rich view and parseable JSON.
+
 ---
 
 ## Configuration

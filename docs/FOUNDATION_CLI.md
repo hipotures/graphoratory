@@ -158,11 +158,16 @@ JSON identifiers contain both the typed short `id` and authoritative full `hash`
 values and booleans remain JSON numbers and booleans. Status payloads expose raw values such
 as `disk_bytes`, structured `order_range`, and `selected_latest`; list payloads contain
 arrays of complete displayed rows. Successful JSON output is written to stdout. Application
-errors in JSON mode are written to stderr as:
+errors and Typer parsing errors in JSON mode are written to stderr as:
 
 ```json
 {"error": {"message": "...", "type": "ArtifactError"}}
 ```
+
+This includes missing required arguments, unknown options, and unknown commands, even though
+those failures occur before an application handler runs. Standard invocations without
+`--json` retain Typer/Rich error rendering. `--help` remains the normal human-readable Typer
+help and exits successfully.
 
 Normal Rich-output examples:
 

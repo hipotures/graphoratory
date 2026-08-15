@@ -163,6 +163,53 @@ def test_json_output_formats_application_errors(config_file: Path) -> None:
     assert "\x1b" not in result.stderr
 
 
+@pytest.mark.parametrize(
+    ("arguments", "error_type", "message"),
+    [
+        (
+            ["workspace", "init", "--json"],
+            "MissingParameter",
+            "Missing argument 'NAME'.",
+        ),
+        (
+            ["graph", "generate", "--unknown-option", "--json"],
+            "NoSuchOption",
+            "No such option: --unknown-option",
+        ),
+        (
+            ["unknown-command", "--json"],
+            "UsageError",
+            "No such command 'unknown-command'.",
+        ),
+    ],
+)
+def test_json_output_formats_typer_parser_errors(
+    arguments: list[str],
+    error_type: str,
+    message: str,
+) -> None:
+    result = runner.invoke(app, arguments)
+
+    assert result.exit_code == 2
+    assert result.stdout == ""
+    error = json.loads(result.stderr)["error"]
+    assert error == {
+        "message": message,
+        "type": error_type,
+    }
+    assert "\x1b" not in result.stderr
+    assert "Usage:" not in result.stderr
+
+
+def test_parser_errors_without_json_remain_typer_rich() -> None:
+    result = runner.invoke(app, ["workspace", "init"])
+
+    assert result.exit_code == 2
+    assert "Missing argument" in Text.from_ansi(result.stderr).plain
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(result.stderr)
+
+
 def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:
     initialized = runner.invoke(
         app,

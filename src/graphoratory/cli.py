@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+import sys
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -9,6 +10,8 @@ from typing import Annotated, Any
 import typer
 from rich.console import Console
 from rich.table import Table
+from typer._click.exceptions import ClickException
+from typer.core import TyperGroup
 
 from graphoratory.application import (
     WorkspaceStatus,
@@ -25,9 +28,50 @@ from graphoratory.config import AppConfig, load_config
 from graphoratory.errors import GraphoratoryError
 from graphoratory.identifiers import Identifier
 
+
+class JsonErrorGroup(TyperGroup):
+    def main(
+        self,
+        args: Sequence[str] | None = None,
+        prog_name: str | None = None,
+        complete_var: str | None = None,
+        standalone_mode: bool = True,
+        windows_expand_args: bool = True,
+        **extra: Any,
+    ) -> Any:
+        raw_args = list(args) if args is not None else sys.argv[1:]
+        if "--json" not in raw_args:
+            return super().main(
+                args=args,
+                prog_name=prog_name,
+                complete_var=complete_var,
+                standalone_mode=standalone_mode,
+                windows_expand_args=windows_expand_args,
+                **extra,
+            )
+        try:
+            result = super().main(
+                args=args,
+                prog_name=prog_name,
+                complete_var=complete_var,
+                standalone_mode=False,
+                windows_expand_args=windows_expand_args,
+                **extra,
+            )
+        except ClickException as exc:
+            if not standalone_mode:
+                raise
+            _echo_json_error(exc.format_message(), type(exc).__name__)
+            raise SystemExit(exc.exit_code) from exc
+        if standalone_mode and isinstance(result, int) and result != 0:
+            raise SystemExit(result)
+        return result
+
+
 app = typer.Typer(
     name="graphlab",
     help="Filesystem-first graph laboratory.",
+    cls=JsonErrorGroup,
     no_args_is_help=True,
     pretty_exceptions_show_locals=False,
 )
@@ -287,23 +331,27 @@ def main() -> None:
     app(prog_name="graphlab")
 
 
+def _echo_json_error(message: str, error_type: str) -> None:
+    typer.echo(
+        json.dumps(
+            {
+                "error": {
+                    "message": message,
+                    "type": error_type,
+                }
+            },
+            sort_keys=True,
+        ),
+        err=True,
+    )
+
+
 def _run(action: Callable[[], None], json_output: bool) -> None:
     try:
         action()
     except (GraphoratoryError, OSError, ValueError) as exc:
         if json_output:
-            typer.echo(
-                json.dumps(
-                    {
-                        "error": {
-                            "message": str(exc),
-                            "type": type(exc).__name__,
-                        }
-                    },
-                    sort_keys=True,
-                ),
-                err=True,
-            )
+            _echo_json_error(str(exc), type(exc).__name__)
         else:
             _ERROR_CONSOLE.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(2) from exc
