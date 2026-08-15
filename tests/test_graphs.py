@@ -99,6 +99,7 @@ def test_mixed_generator_is_deterministic_and_uses_every_component(
     config = _graph_config(app_config, generator="mixed", count=48)
     generated = generate_graphs(config)
     assert set(dict(generated.accepted_by_generator)) == set(CONCRETE_GENERATORS)
+    assert all(count > 0 for _, count in generated.accepted_by_generator)
     assert sum(dict(generated.accepted_by_generator).values()) == 48
 
 
