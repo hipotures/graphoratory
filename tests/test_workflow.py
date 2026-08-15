@@ -94,9 +94,15 @@ def test_multiple_workspaces_have_isolated_indexes(app_config: AppConfig) -> Non
     engine_b = create_engine(f"sqlite:///{database_b}")
     try:
         with engine_a.connect() as connection:
-            assert connection.execute(text("SELECT line_hash FROM lines")).scalar_one() == line_a.digest
+            indexed_line_a = connection.execute(
+                text("SELECT line_hash FROM lines")
+            ).scalar_one()
+            assert indexed_line_a == line_a.digest
         with engine_b.connect() as connection:
-            assert connection.execute(text("SELECT line_hash FROM lines")).scalar_one() == line_b.digest
+            indexed_line_b = connection.execute(
+                text("SELECT line_hash FROM lines")
+            ).scalar_one()
+            assert indexed_line_b == line_b.digest
     finally:
         engine_a.dispose()
         engine_b.dispose()
@@ -241,8 +247,10 @@ def test_reindex_rebuilds_only_selected_workspace(app_config: AppConfig) -> None
     assert projection_counts(database_a) == expected_a
     assert database_b.read_bytes() == before_b
     assert (app_config.workspace.root / "workspace-a").is_symlink()
-    assert get_line_status(app_config, line_a.display, workspace_a.display).database_state == "indexed"
-    assert get_line_status(app_config, line_b.display, workspace_b.display).database_state == "indexed"
+    status_a = get_line_status(app_config, line_a.display, workspace_a.display)
+    status_b = get_line_status(app_config, line_b.display, workspace_b.display)
+    assert status_a.database_state == "indexed"
+    assert status_b.database_state == "indexed"
     assert not (app_config.project_root / DATABASE_NAME).exists()
 
 
@@ -316,9 +324,7 @@ def test_workspace_local_index_survives_project_relocation(
     assert get_workspace_status(relocated_config, "portable").identifier == workspace
     assert get_line_status(relocated_config, line.display, "portable").workspace == workspace
 
-    relocated_database = (
-        relocated_root / "workspaces" / workspace.display / DATABASE_NAME
-    )
+    relocated_database = relocated_root / "workspaces" / workspace.display / DATABASE_NAME
     delete_database(relocated_database)
     reindex_workspace(relocated_config, "portable")
     assert get_workspace_status(relocated_config, "portable").database_state == "indexed"
