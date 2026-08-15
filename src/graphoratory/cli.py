@@ -29,6 +29,7 @@ from graphoratory.application import (
     list_workspaces,
     reindex_workspace,
 )
+from graphoratory.baseline_status import get_baseline_status, get_baselines_status
 from graphoratory.config import AppConfig, load_config
 from graphoratory.errors import GraphoratoryError
 from graphoratory.identifiers import Identifier
@@ -369,6 +370,50 @@ def baseline_evaluate(
             _emit(payload, json_output, _render_baseline_evaluation)
             return
         results = evaluate_baselines(config, target, workspace)
+        payload = {
+            "baselines": [_baseline_evaluation_payload(result) for result in results]
+        }
+        _emit(payload, json_output, _render_baseline_evaluations)
+
+    _run(execute, json_output)
+
+
+@baseline_app.command("status")
+def baseline_status(
+    line: Annotated[
+        str | None,
+        typer.Argument(help="Lowercase typed line ID.", metavar="LINE"),
+    ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
+    overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
+) -> None:
+    """Show the latest stored baseline results without recomputing them."""
+
+    def execute() -> None:
+        target, command_overrides = _positional_or_assignment(line, overrides)
+        config, operational = _command_config(
+            command_overrides,
+            {"baseline", "line", "workspace"},
+        )
+        target = _explicit_target(target, operational.pop("line", None), "line")
+        workspace = operational.pop("workspace", None)
+        baseline = operational.pop("baseline", None)
+        _reject_operational(operational)
+        if baseline is not None:
+            result = get_baseline_status(
+                config,
+                target,
+                workspace,
+                baseline_selector=baseline,
+            )
+            payload = _baseline_evaluation_payload(result)
+            _emit(
+                payload,
+                json_output,
+                lambda data: _render_baseline_evaluations({"baselines": [data]}),
+            )
+            return
+        results = get_baselines_status(config, target, workspace)
         payload = {
             "baselines": [_baseline_evaluation_payload(result) for result in results]
         }
