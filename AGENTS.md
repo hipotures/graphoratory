@@ -83,7 +83,36 @@ SQLite is a rebuildable index, projection, query layer, and future dashboard dat
 
 Scientifically or operationally important information must not exist only in SQLite.
 
-The database must be rebuildable from workspace artifacts.
+### SQLite scope is per workspace — hard invariant
+
+Each workspace owns exactly one rebuildable SQLite database:
+
+```text
+workspaces/ws-xxxxxxxx/index.sqlite3
+```
+
+There is **no project-wide SQLite database** and no second catalog/index database.
+
+The workspace database must be rebuildable from the immutable artifacts of that workspace alone.
+
+After a workspace has been selected, ordinary entity lookup inside it is SQL-first. In particular:
+
+- `line list` queries the selected workspace SQLite index;
+- latest-line selection queries the selected workspace SQLite index;
+- explicit line lookup queries the selected workspace SQLite index;
+- line membership queries the selected workspace SQLite index;
+- indexed graph metadata is obtained from the selected workspace SQLite index;
+- after SQLite locates an entity, code may read the one exact authoritative artifact file needed for its full payload.
+
+Ordinary intra-workspace operations must **not** enumerate `lines/`, scan manifests, or search files to locate an entity. If the selected workspace index is missing or stale, fail with a reindex diagnostic; do not silently fall back to a filesystem scan.
+
+Because no global database exists, shallow discovery of top-level `workspaces/ws-*` entries is allowed for workspace listing, duplicate workspace-name checks, and explicit recovery. Workspace names normally resolve through their relative symlink aliases and typed workspace IDs derive their canonical directory directly. This exception does not permit recursive or intra-workspace artifact discovery during normal operations.
+
+`graphlab workspace reindex [WORKSPACE]` rebuilds **only the selected workspace**. Reindex may enumerate that workspace's graph and line artifacts, validate them, build a temporary database, and atomically replace that workspace's `index.sqlite3`. Reindexing workspace A must not rebuild, delete, or modify workspace B's database.
+
+`tests/test_architecture.py` enforces these boundaries in CI. Do not weaken its filesystem-enumeration allowlist merely to make a new scan pass. Any new filesystem enumeration in production code requires an explicit architectural justification.
+
+See `docs/SQLITE_INDEX.md` for the durable SQLite contract.
 
 ### No authoritative mutable state files
 
@@ -130,7 +159,8 @@ Current prefixes:
 - workspace: `ws-xxxxxxxx`
 - line: `ln-xxxxxxxx`
 - graph: `gr-xxxxxxxx`
-- corpus: `cp-xxxxxxxx`
+
+There is no first-class corpus identifier or `cp-...` object.
 
 The short hash is the first 8 hexadecimal characters of the full hash.
 
@@ -140,7 +170,6 @@ Examples:
 ws-a1b2c3d4
 ln-38aa192f
 gr-b782c0e1
-cp-91f03a22
 ```
 
 Rules:
@@ -278,15 +307,15 @@ Counterexample search is a later phase and must not be mixed into early policy-s
 
 ---
 
-## Workspace graph corpus
+## Workspace graph set
 
-A workspace owns a persistent generated graph corpus.
+A workspace owns one persistent generated graph set.
 
-The graph corpus is generated once per corpus-generation operation and saved to disk.
+The graph set is generated and saved to disk as workspace data. It is not a separate first-class corpus object.
 
 Each graph has a stable content hash.
 
-A line chooses a fixed subset of graph hashes from one corpus.
+A line chooses a fixed subset of graph hashes from the workspace graph set.
 
 The same subset is used throughout that line.
 
