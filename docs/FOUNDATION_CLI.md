@@ -272,8 +272,12 @@ reconstructs this row from the graph manifest.
 counts, constructs a new database, verifies SQLite integrity, and atomically replaces the old
 projection. It also removes obsolete absolute-path provenance fields from older manifests and
 recreates the relative human-name alias. After success it renders a Rich report containing
-the workspace name and ID, creation/config metadata, selected generator, graph and line
-counts, order range, indexed database state, and disk usage.
+the workspace name and ID, creation time, portable configuration reference, selected
+generator, graph and line counts, order range, indexed database state, and disk usage.
+Project-relative references use notation such as `$PROJECT/experiment.toml`; the report
+does not print the absolute configuration or checkout path. `$PROJECT` is the command
+invocation directory when the selected config is inside it; for an external config it is
+the config file's containing directory. Configuration-loading errors use the same notation.
 
 Deleting SQLite and running `graphlab workspace reindex` reconstructs workspace identity and
 name, graphs, lines, and line memberships from the filesystem artifacts.

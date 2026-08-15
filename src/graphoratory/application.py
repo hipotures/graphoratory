@@ -256,7 +256,9 @@ def get_workspace_status(
         identifier=workspace.identifier,
         name=workspace.name,
         created_at=str(manifest["created_at"]),
-        config_source=str(config.source),
+        config_source=(
+            f"$PROJECT/{config.source.relative_to(config.project_root).as_posix()}"
+        ),
         generator=str(generator) if isinstance(generator, str) else None,
         graph_count=graph_count,
         min_order=int(graphs_manifest["generation"]["min_order"]) if graphs_manifest else None,

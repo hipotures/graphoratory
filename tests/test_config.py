@@ -24,6 +24,18 @@ def test_root_default_config_loads() -> None:
     assert config.graphs.max_order == 63
 
 
+def test_missing_config_error_uses_project_reference(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    missing = tmp_path / "configs" / "missing.toml"
+    with pytest.raises(ConfigurationError) as error:
+        load_config(Path("configs/missing.toml"))
+    assert "$PROJECT/configs/missing.toml" in str(error.value)
+    assert str(missing) not in str(error.value)
+
+
 def test_nested_overrides_are_applied(config_file: Path) -> None:
     config = load_config(
         config_file,

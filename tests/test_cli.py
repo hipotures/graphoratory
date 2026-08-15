@@ -66,6 +66,8 @@ def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:
     assert active_status.exit_code == 0
     assert "testowy" in active_status.stdout
     assert workspace_id in active_status.stdout
+    assert str(config_file) not in active_status.stdout
+    assert "$PROJECT/experiment.toml" in active_status.stdout
 
     generated = runner.invoke(app, ["graph", "generate", f"config={config_file}"])
     assert generated.exit_code == 0
@@ -101,6 +103,8 @@ def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:
     assert "Database" in reindexed.stdout
     assert "indexed" in reindexed.stdout
     assert "Disk usage" in reindexed.stdout
+    assert str(config_file) not in reindexed.stdout
+    assert "$PROJECT/experiment.toml" in reindexed.stdout
 
     by_name = runner.invoke(
         app,
@@ -178,6 +182,35 @@ def test_unknown_override_fails_clearly(config_file: Path) -> None:
     )
     assert result.exit_code == 2
     assert "unknown override key: foo.bar" in result.stderr
+
+
+def test_config_path_is_reported_relative_to_project_root(
+    config_file: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    project_root = config_file.parent
+    nested_config = project_root / "configs" / "test.toml"
+    nested_config.parent.mkdir()
+    nested_config.write_text(
+        config_file.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(project_root)
+    initialized = runner.invoke(
+        app,
+        ["workspace", "init", "nested", "config=configs/test.toml"],
+    )
+    assert initialized.exit_code == 0
+    _set_active_workspace(nested_config, "nested")
+
+    status = runner.invoke(
+        app,
+        ["workspace", "status", "config=configs/test.toml"],
+    )
+
+    assert status.exit_code == 0
+    assert "$PROJECT/configs/test.toml" in status.stdout
+    assert str(nested_config) not in status.stdout
 
 
 @pytest.mark.parametrize("name", ["../escape", "path/name", "ws-deadbeef"])

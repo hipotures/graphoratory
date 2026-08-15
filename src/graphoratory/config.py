@@ -60,6 +60,7 @@ class AppConfig:
     workspace: WorkspaceConfig
     graphs: GraphConfig
     source: Path
+    project_root: Path
 
 
 _OVERRIDE_TYPES: dict[str, type[str] | type[int] | type[float]] = {
@@ -81,12 +82,24 @@ _OVERRIDE_TYPES: dict[str, type[str] | type[int] | type[float]] = {
 
 
 def load_config(path: Path, overrides: list[str] | None = None) -> AppConfig:
+    invocation_root = Path.cwd().resolve()
     source = path.resolve()
+    project_root = (
+        invocation_root
+        if source.is_relative_to(invocation_root)
+        else source.parent
+    )
+    source_reference = (
+        f"$PROJECT/{source.relative_to(project_root).as_posix()}"
+    )
     try:
         with source.open("rb") as handle:
             raw = tomllib.load(handle)
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise ConfigurationError(f"cannot load configuration {source}: {exc}") from exc
+        detail = exc.strerror if isinstance(exc, OSError) else str(exc)
+        raise ConfigurationError(
+            f"cannot load configuration {source_reference}: {detail or exc}"
+        ) from exc
 
     _validate_sections(raw)
     try:
@@ -153,6 +166,7 @@ def load_config(path: Path, overrides: list[str] | None = None) -> AppConfig:
                 ),
             ),
             source=source,
+            project_root=project_root,
         )
     except KeyError as exc:
         raise ConfigurationError(f"missing configuration key: {exc.args[0]}") from exc
