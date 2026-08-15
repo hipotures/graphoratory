@@ -299,10 +299,10 @@ The immutable graph manifest records:
 
 No rejected candidate graph is persisted. No machine-specific absolute path is recorded.
 
-SQLite migration `0004_graph_corpus_generator` adds the derived `graph_corpora` table. Its
-single row per workspace corpus stores the selected generator, canonical JSON generation
-configuration, requested and actual counts, and aggregate attempt statistics.
-`workspace reindex` recreates this row from the immutable manifest.
+The project SQLite `graph_corpora` table contains one derived row per workspace corpus. It
+stores the selected generator, canonical JSON generation configuration, requested and actual
+counts, and aggregate attempt statistics. `workspace reindex` recreates every row from the
+immutable manifests.
 
 ## Cheap distribution smoke comparison
 

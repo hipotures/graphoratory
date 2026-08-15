@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -8,21 +9,15 @@ from secrets import SystemRandom, token_bytes
 from typing import Any
 
 from graphoratory.artifacts import (
-    DATABASE_NAME,
     GRAPH_FILE,
     WorkspaceArtifact,
     discard_directory,
     ensure_workspace_alias,
-    line_artifacts,
-    normalize_workspace_manifests,
+    parse_utc_timestamp,
     publish_directory,
-    resolve_latest_line,
-    resolve_line,
-    resolve_workspace,
     temporary_directory,
     validate_workspace_name,
     workspace_artifact,
-    workspace_artifacts,
 )
 from graphoratory.config import AppConfig
 from graphoratory.database.core import (
@@ -32,8 +27,26 @@ from graphoratory.database.core import (
     index_workspace,
     make_engine,
     migrate,
-    projection_counts,
     rebuild_database,
+)
+from graphoratory.database.queries import (
+    WorkspaceRow,
+    latest_line,
+    line_graph_hashes,
+    workspace_name_exists,
+    workspace_projection,
+)
+from graphoratory.database.queries import (
+    list_lines as query_lines,
+)
+from graphoratory.database.queries import (
+    list_workspaces as query_workspaces,
+)
+from graphoratory.database.queries import (
+    resolve_line as query_line,
+)
+from graphoratory.database.queries import (
+    resolve_workspace as query_workspace,
 )
 from graphoratory.errors import ArtifactError, GraphoratoryError
 from graphoratory.graphs import generate_graphs, write_graphs_jsonl_gz
@@ -84,6 +97,8 @@ class CommandLineSelection:
     line_path: Path
     workspace: WorkspaceArtifact
     selected_latest: bool
+    indexed_created_at: str
+    indexed_graph_count: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,16 +126,27 @@ class LineListResult:
 
 def create_workspace(config: AppConfig, name: str) -> Identifier:
     validate_workspace_name(name)
-    config.workspace.root.mkdir(parents=True, exist_ok=True)
-    if any(workspace.name == name for workspace in workspace_artifacts(config.workspace.root)):
+    project_database = database_path(config.project_root)
+    if not project_database.is_file():
+        if config.workspace.root.exists():
+            raise ArtifactError(
+                "project index is missing or stale; run `graphlab workspace reindex`"
+            )
+        migrate(project_database)
+    if workspace_name_exists(project_database, name):
         raise ArtifactError(f"duplicate workspace name: {name}")
+    alias = config.workspace.root / name
+    if alias.exists() or alias.is_symlink():
+        raise ArtifactError(
+            "project index is missing or stale; run `graphlab workspace reindex`"
+        )
+    config.workspace.root.mkdir(parents=True, exist_ok=True)
     created_at = _timestamp()
     identifier = Identifier.from_bytes(ObjectType.WORKSPACE, token_bytes(32))
     final_path = config.workspace.root / identifier.display
     if final_path.exists():
         raise ArtifactError(f"workspace path already exists: {final_path}")
     temporary = temporary_directory(config.workspace.root, "workspace")
-    published = False
     try:
         (temporary / "graphs").mkdir()
         (temporary / "lines").mkdir()
@@ -134,21 +160,23 @@ def create_workspace(config: AppConfig, name: str) -> Identifier:
             },
         }
         write_json_atomic(temporary / "manifest.json", manifest)
-        migrate(temporary / DATABASE_NAME)
-        engine = make_engine(temporary / DATABASE_NAME)
+        publish_directory(temporary, final_path)
+        ensure_workspace_alias(WorkspaceArtifact(identifier, name, created_at, final_path))
+    except BaseException:
+        discard_directory(temporary)
+        raise
+    try:
+        engine = make_engine(project_database)
         try:
             with engine.begin() as connection:
                 index_workspace(connection, manifest)
         finally:
             engine.dispose()
-        publish_directory(temporary, final_path)
-        published = True
-        ensure_workspace_alias(WorkspaceArtifact(identifier, name, created_at, final_path))
-    except BaseException:
-        if published:
-            discard_directory(final_path)
-        discard_directory(temporary)
-        raise
+    except Exception as exc:
+        raise ArtifactError(
+            "workspace was published, but SQLite indexing failed; "
+            "run `graphlab workspace reindex`"
+        ) from exc
     return identifier
 
 
@@ -188,7 +216,7 @@ def generate_workspace_graphs(
     discard_directory(temporary)
 
     try:
-        engine = make_engine(database_path(workspace_path))
+        engine = make_engine(database_path(config.project_root))
         try:
             with engine.begin() as connection:
                 index_graphs(connection, manifest, generated.graphs)
@@ -197,7 +225,7 @@ def generate_workspace_graphs(
     except Exception as exc:
         raise ArtifactError(
             "graphs were published, but SQLite indexing failed; "
-            f"run workspace reindex {workspace.identifier.display}"
+            "run `graphlab workspace reindex`"
         ) from exc
     return GraphResult(
         workspace=workspace.identifier,
@@ -244,7 +272,7 @@ def create_line(
         raise
 
     try:
-        engine = make_engine(database_path(workspace_path))
+        engine = make_engine(database_path(config.project_root))
         try:
             with engine.begin() as connection:
                 index_line(connection, manifest)
@@ -253,7 +281,7 @@ def create_line(
     except Exception as exc:
         raise ArtifactError(
             f"line {identifier.display} was published, but SQLite indexing failed; "
-            f"run workspace reindex {workspace.identifier.display}"
+            "run `graphlab workspace reindex`"
         ) from exc
     return identifier
 
@@ -263,37 +291,40 @@ def get_workspace_status(
 ) -> WorkspaceStatus:
     workspace = _selected_workspace(config, workspace_value)
     workspace_path = workspace.path
-    manifest = read_json(workspace_path / "manifest.json")
+    projection = workspace_projection(
+        database_path(config.project_root),
+        workspace.identifier.digest,
+    )
     graphs_manifest_path = workspace_path / "graphs" / "manifest.json"
     graphs_manifest = read_json(graphs_manifest_path) if graphs_manifest_path.is_file() else None
-    line_manifests = _line_manifests(workspace_path)
-    graph_count = int(graphs_manifest["graph_count"]) if graphs_manifest else 0
-    generator = (
-        graphs_manifest["generation"].get("generator")
-        if graphs_manifest
+    configuration = (
+        json.loads(projection.configuration_json)
+        if projection.configuration_json is not None
         else None
     )
-    expected = {
-        "workspaces": 1,
-        "graph_corpora": 1 if graphs_manifest else 0,
-        "graphs": graph_count,
-        "lines": len(line_manifests),
-        "line_graphs": sum(len(line["graph_hashes"]) for line in line_manifests),
-    }
-    actual = projection_counts(database_path(workspace_path))
-    database_state = "indexed" if actual == expected else "needs reindex"
+    database_state = "indexed"
+    if graphs_manifest is None:
+        if projection.graph_count != 0 or projection.generator is not None:
+            database_state = "needs reindex"
+    elif (
+        graphs_manifest.get("workspace_hash") != workspace.identifier.digest
+        or graphs_manifest.get("graph_count") != projection.graph_count
+        or graphs_manifest.get("generation", {}).get("generator")
+        != projection.generator
+    ):
+        database_state = "needs reindex"
     return WorkspaceStatus(
         identifier=workspace.identifier,
         name=workspace.name,
-        created_at=str(manifest["created_at"]),
+        created_at=workspace.created_at,
         config_source=(
             f"$PROJECT/{config.source.relative_to(config.project_root).as_posix()}"
         ),
-        generator=str(generator) if isinstance(generator, str) else None,
-        graph_count=graph_count,
-        min_order=int(graphs_manifest["generation"]["min_order"]) if graphs_manifest else None,
-        max_order=int(graphs_manifest["generation"]["max_order"]) if graphs_manifest else None,
-        line_count=len(line_manifests),
+        generator=projection.generator,
+        graph_count=projection.graph_count,
+        min_order=int(configuration["min_order"]) if configuration else None,
+        max_order=int(configuration["max_order"]) if configuration else None,
+        line_count=projection.line_count,
         database_state=database_state,
         disk_bytes=_directory_size(workspace_path),
     )
@@ -311,12 +342,19 @@ def get_line_status(
     selected = list(manifest["graph_hashes"])
     if not set(selected).issubset(set(graphs_manifest["graph_hashes"])):
         raise ArtifactError("line manifest references graphs absent from its workspace")
-    counts = projection_counts(database_path(workspace_path))
-    database_state = (
-        "indexed"
-        if counts is not None and counts["lines"] >= 1 and counts["line_graphs"] >= len(selected)
-        else "needs reindex"
+    indexed_graph_hashes = line_graph_hashes(
+        database_path(config.project_root),
+        selection.identifier.digest,
     )
+    database_state = "indexed"
+    if (
+        manifest.get("line_hash") != selection.identifier.digest
+        or manifest.get("workspace_hash") != selection.workspace.identifier.digest
+        or manifest.get("created_at") != selection.indexed_created_at
+        or len(selected) != selection.indexed_graph_count
+        or tuple(selected) != indexed_graph_hashes
+    ):
+        database_state = "needs reindex"
     return LineStatus(
         identifier=selection.identifier,
         workspace=selection.workspace.identifier,
@@ -336,19 +374,35 @@ def resolve_line_for_command(
 ) -> CommandLineSelection:
     if explicit_line is None:
         workspace = _selected_workspace(config, workspace_value)
-        line = resolve_latest_line(workspace)
+        line = latest_line(
+            database_path(config.project_root),
+            workspace.identifier.digest,
+        )
+        if line is None:
+            label = workspace.name or workspace.identifier.display
+            raise ArtifactError(
+                f"workspace {label} has no lines; create one with `graphlab line create`"
+            )
         return CommandLineSelection(
             line.identifier,
-            line.path,
+            workspace.path / "lines" / line.identifier.display,
             workspace,
             selected_latest=True,
+            indexed_created_at=line.created_at,
+            indexed_graph_count=line.graph_count,
         )
 
-    identifier, line_path, workspace_path = resolve_line(
-        config.workspace.root,
+    line = query_line(
+        database_path(config.project_root),
         explicit_line,
     )
-    workspace = workspace_artifact(workspace_path)
+    workspace = _workspace_from_row(
+        config,
+        query_workspace(
+            database_path(config.project_root),
+            f"ws-{line.workspace.digest}",
+        ),
+    )
     workspace_context = (
         workspace_value if workspace_value is not None else config.workspace.active
     )
@@ -357,22 +411,29 @@ def resolve_line_for_command(
         if workspace.identifier != selected_workspace.identifier:
             label = selected_workspace.name or selected_workspace.identifier.display
             raise ArtifactError(
-                f"line {identifier.display} does not belong to workspace {label}"
+                f"line {line.identifier.display} does not belong to workspace {label}"
             )
         workspace = selected_workspace
     return CommandLineSelection(
-        identifier,
-        line_path,
+        line.identifier,
+        workspace.path / "lines" / line.identifier.display,
         workspace,
         selected_latest=False,
+        indexed_created_at=line.created_at,
+        indexed_graph_count=line.graph_count,
     )
 
 
 def reindex_workspace(config: AppConfig, workspace_value: str | None = None) -> Identifier:
+    try:
+        workspaces = rebuild_database(config.project_root, config.workspace.root)
+    except GraphoratoryError:
+        raise
+    except Exception as exc:
+        raise ArtifactError(f"project reindex failed: {exc}") from exc
+    for scanned_workspace in workspaces:
+        ensure_workspace_alias(scanned_workspace)
     workspace = _selected_workspace(config, workspace_value)
-    normalize_workspace_manifests(workspace.path)
-    rebuild_database(workspace.path)
-    ensure_workspace_alias(workspace)
     return workspace.identifier
 
 
@@ -380,17 +441,17 @@ def list_workspaces(config: AppConfig) -> list[WorkspaceSummary]:
     active_hash: str | None = None
     if config.workspace.active is not None:
         with suppress(GraphoratoryError):
-            active_hash = resolve_workspace(
-                config.workspace.root, config.workspace.active
+            active_hash = query_workspace(
+                database_path(config.project_root), config.workspace.active
             ).identifier.digest
     return [
         WorkspaceSummary(
-            identifier=workspace.identifier,
-            name=workspace.name,
-            created_at=workspace.created_at,
-            active=workspace.identifier.digest == active_hash,
+            identifier=row.identifier,
+            name=row.name,
+            created_at=row.created_at,
+            active=row.identifier.digest == active_hash,
         )
-        for workspace in workspace_artifacts(config.workspace.root)
+        for row in query_workspaces(database_path(config.project_root))
     ]
 
 
@@ -402,11 +463,16 @@ def list_lines(
     lines = tuple(
         LineSummary(
             identifier=line.identifier,
-            created_at=line.created_at,
+            created_at=parse_utc_timestamp(line.created_at),
             graph_count=line.graph_count,
             latest=index == 0,
         )
-        for index, line in enumerate(line_artifacts(workspace))
+        for index, line in enumerate(
+            query_lines(
+                database_path(config.project_root),
+                workspace.identifier.digest,
+            )
+        )
     )
     return LineListResult(
         workspace=workspace.identifier,
@@ -454,22 +520,31 @@ def _selected_workspace(config: AppConfig, explicit: str | None) -> WorkspaceArt
             "no workspace selected; set workspace.active in experiment.toml "
             "or pass workspace=<name-or-id>"
         )
-    return resolve_workspace(config.workspace.root, value)
+    row = query_workspace(database_path(config.project_root), value)
+    return _workspace_from_row(config, row)
+
+
+def _workspace_from_row(config: AppConfig, row: WorkspaceRow) -> WorkspaceArtifact:
+    path = config.workspace.root / row.identifier.display
+    try:
+        workspace = workspace_artifact(path)
+    except GraphoratoryError as exc:
+        raise ArtifactError(
+            "project index is missing or stale; run `graphlab workspace reindex`"
+        ) from exc
+    if (
+        workspace.identifier != row.identifier
+        or workspace.name != row.name
+        or workspace.created_at != row.created_at
+    ):
+        raise ArtifactError(
+            "project index is missing or stale; run `graphlab workspace reindex`"
+        )
+    return workspace
 
 
 def _timestamp() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
-
-
-def _line_manifests(workspace_path: Path) -> list[dict[str, Any]]:
-    lines_path = workspace_path / "lines"
-    if not lines_path.exists():
-        return []
-    return [
-        read_json(path / "manifest.json")
-        for path in sorted(lines_path.iterdir())
-        if path.is_dir() and path.name.startswith("ln-") and (path / "manifest.json").is_file()
-    ]
 
 
 def _directory_size(path: Path) -> int:

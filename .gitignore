@@ -5,3 +5,6 @@
 __pycache__/
 *.py[cod]
 workspaces/
+/index.sqlite3
+/index.sqlite3-shm
+/index.sqlite3-wal

@@ -10,7 +10,14 @@ from alembic.config import Config
 from sqlalchemy import Connection, Engine, create_engine, event, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE
+from graphoratory.artifacts import (
+    DATABASE_NAME,
+    GRAPH_FILE,
+    WorkspaceArtifact,
+    scan_line_artifacts,
+    scan_workspace_directories,
+    workspace_artifact,
+)
 from graphoratory.database.schema import (
     graph_corpora,
     graphs,
@@ -22,8 +29,8 @@ from graphoratory.graphs import Graph, read_graphs_jsonl_gz
 from graphoratory.jsonio import canonical_json_bytes, read_json
 
 
-def database_path(workspace_path: Path) -> Path:
-    return workspace_path / DATABASE_NAME
+def database_path(project_root: Path) -> Path:
+    return project_root / DATABASE_NAME
 
 
 def make_engine(path: Path) -> Engine:
@@ -106,6 +113,7 @@ def index_line(connection: Connection, manifest: dict[str, Any]) -> None:
         [
             {
                 "line_hash": manifest["line_hash"],
+                "workspace_hash": manifest["workspace_hash"],
                 "graph_hash": graph_hash,
                 "position": position,
             }
@@ -114,25 +122,32 @@ def index_line(connection: Connection, manifest: dict[str, Any]) -> None:
     )
 
 
-def rebuild_database(workspace_path: Path) -> None:
-    destination = database_path(workspace_path)
+def rebuild_database(
+    project_root: Path,
+    workspace_root: Path,
+) -> tuple[WorkspaceArtifact, ...]:
+    destination = database_path(project_root)
     temporary = destination.with_name(f".{destination.name}.reindex")
     delete_database(temporary)
+    scanned: list[WorkspaceArtifact] = []
     try:
         migrate(temporary)
         engine = make_engine(temporary)
         try:
             with engine.begin() as connection:
-                workspace_manifest = read_json(workspace_path / "manifest.json")
-                index_workspace(connection, workspace_manifest)
-                graphs_path = workspace_path / "graphs"
-                graphs_manifest_path = graphs_path / "manifest.json"
-                if graphs_manifest_path.is_file():
-                    graphs_manifest = read_json(graphs_manifest_path)
-                    workspace_graphs = tuple(read_graphs_jsonl_gz(graphs_path / GRAPH_FILE))
-                    _validate_graphs_manifest(graphs_manifest, workspace_graphs)
-                    index_graphs(connection, graphs_manifest, workspace_graphs)
-                _index_lines_from_artifacts(connection, workspace_path)
+                for workspace_path in scan_workspace_directories(workspace_root):
+                    workspace = workspace_artifact(workspace_path)
+                    if workspace.identifier.display != workspace_path.name:
+                        raise ValueError(
+                            f"workspace directory does not match manifest: {workspace_path}"
+                        )
+                    scanned.append(workspace)
+                    index_workspace(
+                        connection,
+                        read_json(workspace_path / "manifest.json"),
+                    )
+                    _index_graphs_from_artifacts(connection, workspace)
+                    _index_lines_from_artifacts(connection, workspace)
             with engine.connect() as connection:
                 result = connection.execute(text("PRAGMA integrity_check")).scalar_one()
                 if result != "ok":
@@ -143,6 +158,9 @@ def rebuild_database(workspace_path: Path) -> None:
         delete_database(destination)
         temporary.replace(destination)
         _delete_sidecars(temporary)
+        for workspace in scanned:
+            delete_database(workspace.path / DATABASE_NAME)
+        return tuple(scanned)
     except BaseException:
         delete_database(temporary)
         raise
@@ -188,14 +206,31 @@ def projection_counts(path: Path) -> dict[str, int] | None:
         return None
 
 
-def _index_lines_from_artifacts(connection: Connection, workspace_path: Path) -> None:
-    lines_path = workspace_path / "lines"
-    if not lines_path.exists():
+def _index_graphs_from_artifacts(
+    connection: Connection,
+    workspace: WorkspaceArtifact,
+) -> None:
+    graphs_path = workspace.path / "graphs"
+    manifest_path = graphs_path / "manifest.json"
+    graph_file = graphs_path / GRAPH_FILE
+    if not manifest_path.exists() and not graph_file.exists():
         return
-    for line_path in sorted(lines_path.iterdir()):
-        manifest_path = line_path / "manifest.json"
-        if line_path.is_dir() and line_path.name.startswith("ln-") and manifest_path.is_file():
-            index_line(connection, read_json(manifest_path))
+    if not manifest_path.is_file() or not graph_file.is_file():
+        raise ValueError(f"incomplete graph artifact: {graphs_path}")
+    manifest = read_json(manifest_path)
+    if manifest.get("workspace_hash") != workspace.identifier.digest:
+        raise ValueError(f"graph manifest belongs to another workspace: {manifest_path}")
+    workspace_graphs = tuple(read_graphs_jsonl_gz(graph_file))
+    _validate_graphs_manifest(manifest, workspace_graphs)
+    index_graphs(connection, manifest, workspace_graphs)
+
+
+def _index_lines_from_artifacts(
+    connection: Connection,
+    workspace: WorkspaceArtifact,
+) -> None:
+    for line in scan_line_artifacts(workspace):
+        index_line(connection, read_json(line.path / "manifest.json"))
 
 
 def _validate_graphs_manifest(

@@ -78,9 +78,10 @@ uv run graphlab workspace reindex
 ```
 
 Commands that need a workspace use an explicit `workspace=<name-or-id>` first, then
-`workspace.active`; they fail rather than guessing if neither is set. `line status`
-always requires an explicit line. A workspace accepts one immutable graph generation;
-a second `graph generate` fails instead of overwriting it.
+`workspace.active`; they fail rather than guessing if neither is set. `line status` may
+select the latest indexed line in the selected workspace when no line ID is passed. A
+workspace accepts one immutable graph generation; a second `graph generate` fails instead
+of overwriting it.
 
 Each named workspace keeps its canonical `workspaces/ws-xxxxxxxx/` directory and exposes
 a relative human-readable alias such as `workspaces/testowy -> ws-xxxxxxxx`. The alias is
@@ -100,11 +101,11 @@ The full lowercase SHA-256 hash is authoritative inside manifests and SQLite.
 ## Artifacts and SQLite
 
 ```text
+index.sqlite3
 workspaces/
 ├── testowy -> ws-xxxxxxxx
 └── ws-xxxxxxxx/
     ├── manifest.json
-    ├── index.sqlite3
     ├── graphs/
     │   ├── manifest.json
     │   └── graphs.jsonl.gz
@@ -113,11 +114,12 @@ workspaces/
             └── manifest.json
 ```
 
-Completed filesystem artifacts are immutable and authoritative. Graph records are
-packed into gzip-compressed JSON Lines. SQLite is only a query projection. If it is absent
-or inconsistent, `workspace reindex` reconstructs the workspace, graphs, lines,
-and line membership from artifacts and checks the rebuilt database before publication.
-After success it prints a Rich summary of the rebuilt workspace instead of only its ID.
+Completed filesystem artifacts are immutable and authoritative. Graph records are packed
+into gzip-compressed JSON Lines. The one project-level SQLite database is a rebuildable
+index and locator covering every workspace. Ordinary commands query it and never silently
+scan artifacts. If it is absent or inconsistent, `workspace reindex` reconstructs all
+workspaces, graphs, lines, and memberships from artifacts and checks the rebuilt database
+before publication. After success it prints a Rich summary of the selected workspace.
 Status commands inspect but never repair data.
 
 The graph seed construction and structural checks were adapted from

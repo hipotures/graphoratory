@@ -10,10 +10,9 @@ from graphoratory.application import (
     create_workspace,
     generate_workspace_graphs,
 )
-from graphoratory.artifacts import DATABASE_NAME
 from graphoratory.cli import app
 from graphoratory.config import AppConfig
-from graphoratory.database.core import delete_database
+from graphoratory.database.core import database_path, delete_database
 from graphoratory.jsonio import read_json
 
 runner = CliRunner()
@@ -436,7 +435,7 @@ def test_line_status_without_a_line_requires_a_workspace(config_file: Path) -> N
     assert "no workspace selected" in result.stderr
 
 
-def test_line_list_is_workspace_scoped_and_sqlite_independent(
+def test_line_list_is_workspace_scoped_and_sqlite_backed(
     app_config: AppConfig,
     config_file: Path,
 ) -> None:
@@ -447,8 +446,6 @@ def test_line_list_is_workspace_scoped_and_sqlite_independent(
     line_a = create_line(app_config, workspace_a.display)
     line_b = create_line(app_config, workspace_b.display)
     _set_active_workspace(config_file, "workspace-a")
-    delete_database(app_config.workspace.root / workspace_a.display / DATABASE_NAME)
-
     active = runner.invoke(app, ["line", "list", f"config={config_file}"])
     explicit = runner.invoke(
         app,
@@ -470,6 +467,11 @@ def test_line_list_is_workspace_scoped_and_sqlite_independent(
     assert line_b.display in explicit.stdout
     assert line_a.display not in explicit.stdout
     assert explicit.stdout.count("*") == 1
+
+    delete_database(database_path(app_config.project_root))
+    missing = runner.invoke(app, ["line", "list", f"config={config_file}"])
+    assert missing.exit_code == 2
+    assert "project index is missing or stale" in missing.stderr
 
 
 def test_line_list_handles_an_empty_workspace(
