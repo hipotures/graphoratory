@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+from pathlib import Path
+from typing import Any
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import Connection, Engine, create_engine, event, func, select, text
+from sqlalchemy.exc import SQLAlchemyError
+
+from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE, corpus_directories
+from graphoratory.database.schema import corpora, graphs, line_graphs, lines, workspaces
+from graphoratory.graphs import Graph, read_graphs_jsonl_gz
+from graphoratory.jsonio import read_json
+
+
+def database_path(workspace_path: Path) -> Path:
+    return workspace_path / DATABASE_NAME
+
+
+def make_engine(path: Path) -> Engine:
+    engine = create_engine(f"sqlite:///{path}")
+
+    @event.listens_for(engine, "connect")
+    def configure_sqlite(dbapi_connection: Any, _connection_record: Any) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
+
+    return engine
+
+
+def migrate(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    config = Config()
+    config.set_main_option("script_location", str(Path(__file__).parent / "migrations"))
+    config.set_main_option("sqlalchemy.url", f"sqlite:///{path}")
+    command.upgrade(config, "head")
+
+
+def index_workspace(connection: Connection, manifest: dict[str, Any], path: Path) -> None:
+    connection.execute(
+        workspaces.insert().values(
+            hash_full=manifest["hash_full"],
+            hash_short=str(manifest["hash_full"])[:8],
+            created_at=manifest["created_at"],
+            manifest_path=str(path / "manifest.json"),
+        )
+    )
+
+
+def index_corpus(
+    connection: Connection,
+    manifest: dict[str, Any],
+    corpus_path: Path,
+    corpus_graphs: Iterable[Graph],
+) -> None:
+    connection.execute(
+        corpora.insert().values(
+            hash_full=manifest["hash_full"],
+            hash_short=str(manifest["hash_full"])[:8],
+            workspace_hash=manifest["workspace_hash"],
+            created_at=manifest["created_at"],
+            graph_count=manifest["graph_count"],
+            min_order=manifest["generation"]["min_order"],
+            max_order=manifest["generation"]["max_order"],
+            manifest_path=str(corpus_path / "manifest.json"),
+            graph_file=str(corpus_path / GRAPH_FILE),
+        )
+    )
+    connection.execute(
+        graphs.insert(),
+        [
+            {
+                "corpus_hash": manifest["hash_full"],
+                "hash_full": graph.hash_full,
+                "hash_short": graph.hash_full[:8],
+                "graph_order": graph.order,
+            }
+            for graph in corpus_graphs
+        ],
+    )
+
+
+def index_line(connection: Connection, manifest: dict[str, Any], line_path: Path) -> None:
+    connection.execute(
+        lines.insert().values(
+            hash_full=manifest["hash_full"],
+            hash_short=str(manifest["hash_full"])[:8],
+            workspace_hash=manifest["workspace_hash"],
+            corpus_hash=manifest["corpus_hash"],
+            created_at=manifest["created_at"],
+            graph_count=len(manifest["graph_hashes"]),
+            manifest_path=str(line_path / "manifest.json"),
+        )
+    )
+    connection.execute(
+        line_graphs.insert(),
+        [
+            {
+                "line_hash": manifest["hash_full"],
+                "corpus_hash": manifest["corpus_hash"],
+                "graph_hash": graph_hash,
+                "position": position,
+            }
+            for position, graph_hash in enumerate(manifest["graph_hashes"])
+        ],
+    )
+
+
+def rebuild_database(workspace_path: Path) -> None:
+    destination = database_path(workspace_path)
+    temporary = destination.with_name(f".{destination.name}.reindex")
+    delete_database(temporary)
+    try:
+        migrate(temporary)
+        engine = make_engine(temporary)
+        try:
+            with engine.begin() as connection:
+                workspace_manifest = read_json(workspace_path / "manifest.json")
+                index_workspace(connection, workspace_manifest, workspace_path)
+                for corpus_path in corpus_directories(workspace_path):
+                    corpus_manifest = read_json(corpus_path / "manifest.json")
+                    corpus_graphs = tuple(read_graphs_jsonl_gz(corpus_path / GRAPH_FILE))
+                    _validate_corpus_manifest(corpus_manifest, corpus_graphs)
+                    index_corpus(connection, corpus_manifest, corpus_path, corpus_graphs)
+                _index_lines_from_artifacts(connection, workspace_path)
+            with engine.connect() as connection:
+                result = connection.execute(text("PRAGMA integrity_check")).scalar_one()
+                if result != "ok":
+                    raise RuntimeError(f"rebuilt SQLite integrity check failed: {result}")
+                connection.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+        finally:
+            engine.dispose()
+        delete_database(destination)
+        temporary.replace(destination)
+        _delete_sidecars(temporary)
+    except BaseException:
+        delete_database(temporary)
+        raise
+
+
+def delete_database(path: Path) -> None:
+    if path.exists():
+        engine = create_engine(f"sqlite:///{path}")
+        try:
+            try:
+                with engine.connect() as connection:
+                    connection.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
+            except SQLAlchemyError:
+                pass
+        finally:
+            engine.dispose()
+        path.unlink(missing_ok=True)
+    _delete_sidecars(path)
+
+
+def projection_counts(path: Path) -> dict[str, int] | None:
+    if not path.is_file():
+        return None
+    engine = make_engine(path)
+    try:
+        with engine.connect() as connection:
+            return {
+                "workspaces": connection.scalar(select(func.count()).select_from(workspaces)) or 0,
+                "corpora": connection.scalar(select(func.count()).select_from(corpora)) or 0,
+                "graphs": connection.scalar(select(func.count()).select_from(graphs)) or 0,
+                "lines": connection.scalar(select(func.count()).select_from(lines)) or 0,
+                "line_graphs": connection.scalar(select(func.count()).select_from(line_graphs))
+                or 0,
+            }
+    except Exception:
+        return None
+    finally:
+        engine.dispose()
+
+
+def _index_lines_from_artifacts(connection: Connection, workspace_path: Path) -> None:
+    lines_path = workspace_path / "lines"
+    if not lines_path.exists():
+        return
+    for line_path in sorted(lines_path.iterdir()):
+        manifest_path = line_path / "manifest.json"
+        if line_path.is_dir() and line_path.name.startswith("ln-") and manifest_path.is_file():
+            index_line(connection, read_json(manifest_path), line_path)
+
+
+def _validate_corpus_manifest(manifest: dict[str, Any], corpus_graphs: tuple[Graph, ...]) -> None:
+    hashes = [graph.hash_full for graph in corpus_graphs]
+    if hashes != manifest.get("graph_hashes"):
+        raise ValueError("corpus graph records do not match its manifest")
+    if len(hashes) != manifest.get("graph_count"):
+        raise ValueError("corpus graph count does not match its manifest")
+
+
+def _delete_sidecars(path: Path) -> None:
+    Path(f"{path}-wal").unlink(missing_ok=True)
+    Path(f"{path}-shm").unlink(missing_ok=True)
