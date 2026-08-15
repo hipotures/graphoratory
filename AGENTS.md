@@ -382,3 +382,4 @@ At the end of a task:
 4. perform the requested smoke test;
 5. report exactly what changed;
 6. report anything deliberately left for a later milestone.
+7. commit & push
