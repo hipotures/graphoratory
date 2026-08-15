@@ -53,6 +53,13 @@ def _stored_result(
             f"no stored {selector} baseline evaluation for {selection.identifier.display}; "
             f"run `graphlab baseline evaluate baseline={selector}`"
         )
+    if (
+        row.workspace_hash != selection.workspace.identifier.digest
+        or row.line_hash != selection.identifier.digest
+    ):
+        raise ArtifactError(
+            "workspace index is missing or stale; run `graphlab workspace reindex`"
+        )
     manifest = _read_exact_artifact(selection, row, selector, baseline.name)
     score = _dict_field(manifest, "score")
     diagnostics = _dict_field(manifest, "diagnostics")
@@ -67,9 +74,9 @@ def _stored_result(
         graph_count=row.graph_count,
         score=score,
         diagnostics=diagnostics,
-        wall_seconds=float(resources["wall_seconds"]),
-        graphs_per_second=float(resources["graphs_per_second"]),
-        peak_rss_bytes=int(resources["peak_rss_bytes"]),
+        wall_seconds=_float_field(resources, "wall_seconds"),
+        graphs_per_second=_float_field(resources, "graphs_per_second"),
+        peak_rss_bytes=_int_field(resources, "peak_rss_bytes"),
         database_state="indexed",
         selected_latest=selection.selected_latest,
     )
@@ -117,3 +124,17 @@ def _dict_field(manifest: dict[str, Any], field: str) -> dict[str, object]:
     if not isinstance(value, dict):
         raise TypeError(f"{field} must be an object")
     return cast(dict[str, object], value)
+
+
+def _float_field(payload: dict[str, object], field: str) -> float:
+    value = payload[field]
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise TypeError(f"{field} must be numeric")
+    return float(value)
+
+
+def _int_field(payload: dict[str, object], field: str) -> int:
+    value = payload[field]
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(f"{field} must be an integer")
+    return value
