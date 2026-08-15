@@ -84,6 +84,24 @@ def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:
     assert line_id in line_status.stdout
     assert workspace_id in line_status.stdout
 
+    reindexed = runner.invoke(
+        app,
+        ["workspace", "reindex", f"config={config_file}"],
+    )
+    assert reindexed.exit_code == 0
+    assert "Reindex complete" in reindexed.stdout
+    assert "Name" in reindexed.stdout
+    assert "testowy" in reindexed.stdout
+    assert "Workspace" in reindexed.stdout
+    assert workspace_id in reindexed.stdout
+    assert "Generator" in reindexed.stdout
+    assert "mixed" in reindexed.stdout
+    assert "Graphs" in reindexed.stdout
+    assert "Lines" in reindexed.stdout
+    assert "Database" in reindexed.stdout
+    assert "indexed" in reindexed.stdout
+    assert "Disk usage" in reindexed.stdout
+
     by_name = runner.invoke(
         app,
         ["workspace", "status", "testowy", f"config={config_file}"],

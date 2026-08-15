@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from graphoratory.application import (
+    WorkspaceStatus,
     create_line,
     create_workspace,
     generate_workspace_graphs,
@@ -104,23 +105,7 @@ def workspace_status(
         target = _explicit_target(target, operational.pop("workspace", None), "workspace")
         _reject_operational(operational)
         status = get_workspace_status(config, target)
-        rows = [
-            ("Name", status.name or "—"),
-            ("Workspace", status.identifier.display),
-            ("Created", status.created_at),
-            ("Config", status.config_source),
-            ("Graphs", str(status.graph_count)),
-            (
-                "Order range",
-                f"{status.min_order}..{status.max_order}"
-                if status.min_order is not None
-                else "—",
-            ),
-            ("Lines", str(status.line_count)),
-            ("Database", status.database_state),
-            ("Disk usage", _format_bytes(status.disk_bytes)),
-        ]
-        _status_table(rows)
+        _status_table(_workspace_status_rows(status))
 
     _run(execute)
 
@@ -143,7 +128,12 @@ def workspace_reindex(
         config, operational = _command_config(command_overrides, {"workspace"})
         target = _explicit_target(target, operational.pop("workspace", None), "workspace")
         _reject_operational(operational)
-        typer.echo(reindex_workspace(config, target).display)
+        identifier = reindex_workspace(config, target)
+        status = get_workspace_status(config, identifier.display)
+        _status_table(
+            _workspace_status_rows(status),
+            title="[green]Reindex complete[/green]",
+        )
 
     _run(execute)
 
@@ -280,8 +270,32 @@ def _reject_operational(values: dict[str, str]) -> None:
         raise ValueError(f"unexpected command parameter: {sorted(values)[0]}")
 
 
-def _status_table(rows: list[tuple[str, str]]) -> None:
-    table = Table(show_header=False, box=None, padding=(0, 2))
+def _workspace_status_rows(status: WorkspaceStatus) -> list[tuple[str, str]]:
+    return [
+        ("Name", status.name or "—"),
+        ("Workspace", status.identifier.display),
+        ("Created", status.created_at),
+        ("Config", status.config_source),
+        ("Generator", status.generator or "—"),
+        ("Graphs", str(status.graph_count)),
+        (
+            "Order range",
+            f"{status.min_order}..{status.max_order}"
+            if status.min_order is not None
+            else "—",
+        ),
+        ("Lines", str(status.line_count)),
+        ("Database", status.database_state),
+        ("Disk usage", _format_bytes(status.disk_bytes)),
+    ]
+
+
+def _status_table(
+    rows: list[tuple[str, str]],
+    *,
+    title: str | None = None,
+) -> None:
+    table = Table(title=title, show_header=False, box=None, padding=(0, 2))
     table.add_column(style="bold")
     table.add_column()
     for name, value in rows:

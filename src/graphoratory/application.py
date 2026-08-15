@@ -53,6 +53,7 @@ class WorkspaceStatus:
     name: str | None
     created_at: str
     config_source: str
+    generator: str | None
     graph_count: int
     min_order: int | None
     max_order: int | None
@@ -237,6 +238,11 @@ def get_workspace_status(
     graphs_manifest = read_json(graphs_manifest_path) if graphs_manifest_path.is_file() else None
     line_manifests = _line_manifests(workspace_path)
     graph_count = int(graphs_manifest["graph_count"]) if graphs_manifest else 0
+    generator = (
+        graphs_manifest["generation"].get("generator")
+        if graphs_manifest
+        else None
+    )
     expected = {
         "workspaces": 1,
         "graph_corpora": 1 if graphs_manifest else 0,
@@ -251,6 +257,7 @@ def get_workspace_status(
         name=workspace.name,
         created_at=str(manifest["created_at"]),
         config_source=str(config.source),
+        generator=str(generator) if isinstance(generator, str) else None,
         graph_count=graph_count,
         min_order=int(graphs_manifest["generation"]["min_order"]) if graphs_manifest else None,
         max_order=int(graphs_manifest["generation"]["max_order"]) if graphs_manifest else None,

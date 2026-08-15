@@ -271,7 +271,9 @@ reconstructs this row from the graph manifest.
 `workspace reindex` reads the workspace, graph, and line artifacts, validates their hashes and
 counts, constructs a new database, verifies SQLite integrity, and atomically replaces the old
 projection. It also removes obsolete absolute-path provenance fields from older manifests and
-recreates the relative human-name alias.
+recreates the relative human-name alias. After success it renders a Rich report containing
+the workspace name and ID, creation/config metadata, selected generator, graph and line
+counts, order range, indexed database state, and disk usage.
 
 Deleting SQLite and running `graphlab workspace reindex` reconstructs workspace identity and
 name, graphs, lines, and line memberships from the filesystem artifacts.

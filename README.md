@@ -117,6 +117,7 @@ Completed filesystem artifacts are immutable and authoritative. Graph records ar
 packed into gzip-compressed JSON Lines. SQLite is only a query projection. If it is absent
 or inconsistent, `workspace reindex` reconstructs the workspace, graphs, lines,
 and line membership from artifacts and checks the rebuilt database before publication.
+After success it prints a Rich summary of the rebuilt workspace instead of only its ID.
 Status commands inspect but never repair data.
 
 The graph seed construction and structural checks were adapted from
