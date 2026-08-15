@@ -43,6 +43,7 @@ from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atom
 
 @dataclass(frozen=True, slots=True)
 class GraphResult:
+    workspace: Identifier
     graph_count: int
     attempts: int
     rejected: int
@@ -199,6 +200,7 @@ def generate_workspace_graphs(
             f"run workspace reindex {workspace.identifier.display}"
         ) from exc
     return GraphResult(
+        workspace=workspace.identifier,
         graph_count=len(generated.graphs),
         attempts=generated.attempts,
         rejected=generated.rejected,

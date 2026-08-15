@@ -1,6 +1,8 @@
+import json
 from pathlib import Path
 
 import pytest
+from rich.text import Text
 from typer.testing import CliRunner
 
 from graphoratory.application import (
@@ -36,10 +38,129 @@ runner = CliRunner()
 )
 def test_help_works_everywhere(arguments: list[str]) -> None:
     result = runner.invoke(app, arguments)
+    output = Text.from_ansi(result.stdout).plain
     assert result.exit_code == 0
-    assert "Usage:" in result.stdout
-    assert "--help" in result.stdout
-    assert "key=value syntax" not in result.stdout
+    assert "Usage:" in output
+    assert "--help" in output
+    assert "key=value syntax" not in output
+
+
+def test_json_output_covers_every_command(config_file: Path) -> None:
+    initialized = runner.invoke(
+        app,
+        ["workspace", "init", "json-test", "--json", f"config={config_file}"],
+    )
+    assert initialized.exit_code == 0
+    workspace = json.loads(initialized.stdout)["workspace"]
+    assert workspace["id"].startswith("ws-")
+    assert len(workspace["hash"]) == 64
+    assert "\x1b" not in initialized.stdout
+    _set_active_workspace(config_file, "json-test")
+
+    listed_workspaces = runner.invoke(
+        app,
+        ["workspace", "list", "--json", f"config={config_file}"],
+    )
+    workspace_rows = json.loads(listed_workspaces.stdout)["workspaces"]
+    assert listed_workspaces.exit_code == 0
+    assert workspace_rows == [
+        {
+            "active": True,
+            "created_at": workspace_rows[0]["created_at"],
+            "hash": workspace["hash"],
+            "id": workspace["id"],
+            "name": "json-test",
+        }
+    ]
+
+    workspace_status = runner.invoke(
+        app,
+        ["workspace", "status", "--json", f"config={config_file}"],
+    )
+    status_payload = json.loads(workspace_status.stdout)
+    assert workspace_status.exit_code == 0
+    assert status_payload["workspace"] == {**workspace, "name": "json-test"}
+    assert status_payload["graphs"] == 0
+    assert status_payload["lines"] == 0
+    assert isinstance(status_payload["disk_bytes"], int)
+
+    generated = runner.invoke(
+        app,
+        ["graph", "generate", "--json", f"config={config_file}"],
+    )
+    generated_payload = json.loads(generated.stdout)
+    assert generated.exit_code == 0
+    assert generated_payload["workspace"] == workspace
+    assert generated_payload["graph_count"] == 6
+    assert sum(generated_payload["accepted_by_generator"].values()) == 6
+    assert generated.stderr == ""
+
+    created_line = runner.invoke(
+        app,
+        ["line", "create", "--json", f"config={config_file}"],
+    )
+    assert created_line.exit_code == 0
+    line = json.loads(created_line.stdout)["line"]
+    assert line["id"].startswith("ln-")
+    assert len(line["hash"]) == 64
+
+    listed_lines = runner.invoke(
+        app,
+        [
+            "line",
+            "list",
+            "workspace=json-test",
+            "--json",
+            f"config={config_file}",
+        ],
+    )
+    line_list_payload = json.loads(listed_lines.stdout)
+    assert listed_lines.exit_code == 0
+    assert line_list_payload["workspace"] == {**workspace, "name": "json-test"}
+    assert line_list_payload["lines"] == [
+        {
+            "created_at": line_list_payload["lines"][0]["created_at"],
+            "graphs": 2,
+            "hash": line["hash"],
+            "id": line["id"],
+            "latest": True,
+        }
+    ]
+
+    line_status = runner.invoke(
+        app,
+        ["line", "status", "--json", f"config={config_file}"],
+    )
+    line_status_payload = json.loads(line_status.stdout)
+    assert line_status.exit_code == 0
+    assert line_status_payload["line"] == line
+    assert line_status_payload["workspace"] == {**workspace, "name": "json-test"}
+    assert line_status_payload["graphs"] == 2
+    assert line_status_payload["selected_latest"] is True
+
+    reindexed = runner.invoke(
+        app,
+        ["workspace", "reindex", "--json", f"config={config_file}"],
+    )
+    reindex_payload = json.loads(reindexed.stdout)
+    assert reindexed.exit_code == 0
+    assert reindex_payload["reindexed"] is True
+    assert reindex_payload["workspace"] == {**workspace, "name": "json-test"}
+    assert reindex_payload["database"] == "indexed"
+
+
+def test_json_output_formats_application_errors(config_file: Path) -> None:
+    result = runner.invoke(
+        app,
+        ["line", "list", "--json", f"config={config_file}"],
+    )
+
+    assert result.exit_code == 2
+    assert result.stdout == ""
+    error = json.loads(result.stderr)["error"]
+    assert error["type"] == "ArtifactError"
+    assert "no workspace selected" in error["message"]
+    assert "\x1b" not in result.stderr
 
 
 def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:

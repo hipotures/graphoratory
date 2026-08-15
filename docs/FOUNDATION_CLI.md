@@ -139,7 +139,32 @@ graphlab line
 └── status
 ```
 
-Examples:
+Every leaf command also accepts `--json`. The normal console output remains Rich-formatted
+for humans. Internally, each command first builds one JSON-serializable semantic payload;
+the Rich renderer formats that same payload, while `--json` writes it directly without
+tables, ANSI styling, or human-only unit formatting.
+
+JSON examples:
+
+```bash
+graphlab workspace list --json
+graphlab workspace status --json
+graphlab graph generate --json
+graphlab line list workspace=test02 --json
+graphlab line status --json
+```
+
+JSON identifiers contain both the typed short `id` and authoritative full `hash`. Numeric
+values and booleans remain JSON numbers and booleans. Status payloads expose raw values such
+as `disk_bytes`, structured `order_range`, and `selected_latest`; list payloads contain
+arrays of complete displayed rows. Successful JSON output is written to stdout. Application
+errors in JSON mode are written to stderr as:
+
+```json
+{"error": {"message": "...", "type": "ArtifactError"}}
+```
+
+Normal Rich-output examples:
 
 ```bash
 graphlab workspace init test01

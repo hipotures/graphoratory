@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -21,6 +23,7 @@ from graphoratory.application import (
 )
 from graphoratory.config import AppConfig, load_config
 from graphoratory.errors import GraphoratoryError
+from graphoratory.identifiers import Identifier
 
 app = typer.Typer(
     name="graphlab",
@@ -44,11 +47,13 @@ app.add_typer(line_app, name="line")
 _CONSOLE = Console()
 _ERROR_CONSOLE = Console(stderr=True)
 _OVERRIDE_HELP = "Configuration overrides in key=value form."
+_JSON_HELP = "Emit machine-readable JSON instead of Rich output."
 
 
 @workspace_app.command("init")
 def workspace_init(
     name: Annotated[str, typer.Argument(help="Human-readable workspace name.", metavar="NAME")],
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """Create a workspace with a canonical typed ID."""
@@ -56,13 +61,16 @@ def workspace_init(
     def execute() -> None:
         config, operational = _command_config(overrides)
         _reject_operational(operational)
-        typer.echo(create_workspace(config, name).display)
+        identifier = create_workspace(config, name)
+        payload = {"workspace": _identifier_payload(identifier)}
+        _emit(payload, json_output, lambda data: typer.echo(data["workspace"]["id"]))
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 @workspace_app.command("list")
 def workspace_list(
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """List workspaces from their authoritative manifests."""
@@ -70,21 +78,36 @@ def workspace_list(
     def execute() -> None:
         config, operational = _command_config(overrides)
         _reject_operational(operational)
-        table = Table(box=None)
-        table.add_column("NAME")
-        table.add_column("ID")
-        table.add_column("CREATED")
-        table.add_column("ACTIVE")
-        for workspace in list_workspaces(config):
-            table.add_row(
-                workspace.name or "—",
-                workspace.identifier.display,
-                workspace.created_at,
-                "*" if workspace.active else "",
-            )
-        _CONSOLE.print(table)
+        payload = {
+            "workspaces": [
+                {
+                    **_identifier_payload(workspace.identifier),
+                    "name": workspace.name,
+                    "created_at": workspace.created_at,
+                    "active": workspace.active,
+                }
+                for workspace in list_workspaces(config)
+            ]
+        }
+        _emit(payload, json_output, _render_workspace_list)
 
-    _run(execute)
+    _run(execute, json_output)
+
+
+def _render_workspace_list(payload: dict[str, Any]) -> None:
+    table = Table(box=None)
+    table.add_column("NAME")
+    table.add_column("ID")
+    table.add_column("CREATED")
+    table.add_column("ACTIVE")
+    for workspace in payload["workspaces"]:
+        table.add_row(
+            workspace["name"] or "—",
+            workspace["id"],
+            workspace["created_at"],
+            "*" if workspace["active"] else "",
+        )
+    _CONSOLE.print(table)
 
 
 @workspace_app.command("status")
@@ -96,6 +119,7 @@ def workspace_status(
             metavar="WORKSPACE",
         ),
     ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """Show read-only workspace status."""
@@ -106,9 +130,10 @@ def workspace_status(
         target = _explicit_target(target, operational.pop("workspace", None), "workspace")
         _reject_operational(operational)
         status = get_workspace_status(config, target)
-        _status_table(_workspace_status_rows(status))
+        payload = _workspace_status_payload(status)
+        _emit(payload, json_output, _render_workspace_status)
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 @workspace_app.command("reindex")
@@ -120,6 +145,7 @@ def workspace_reindex(
             metavar="WORKSPACE",
         ),
     ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """Rebuild SQLite from authoritative workspace artifacts."""
@@ -131,16 +157,25 @@ def workspace_reindex(
         _reject_operational(operational)
         identifier = reindex_workspace(config, target)
         status = get_workspace_status(config, identifier.display)
-        _status_table(
-            _workspace_status_rows(status),
-            title="[green]Reindex complete[/green]",
+        payload = {
+            "reindexed": True,
+            **_workspace_status_payload(status),
+        }
+        _emit(
+            payload,
+            json_output,
+            lambda data: _render_workspace_status(
+                data,
+                title="[green]Reindex complete[/green]",
+            ),
         )
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 @graph_app.command("generate")
 def graph_generate(
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """Generate and persist one workspace graph corpus."""
@@ -150,19 +185,22 @@ def graph_generate(
         workspace = operational.pop("workspace", None)
         _reject_operational(operational)
         result = generate_workspace_graphs(config, workspace)
-        typer.echo(f"generated {result.graph_count} graphs")
-        if result.rejected or result.duplicates:
-            _ERROR_CONSOLE.print(
-                f"candidate attempts: {result.attempts}; "
-                f"invalid candidates: {result.rejected}; "
-                f"duplicate candidates: {result.duplicates}"
-            )
+        payload = {
+            "workspace": _identifier_payload(result.workspace),
+            "graph_count": result.graph_count,
+            "attempted_candidates": result.attempts,
+            "rejected_invalid_candidates": result.rejected,
+            "duplicate_candidates": result.duplicates,
+            "accepted_by_generator": dict(result.accepted_by_generator),
+        }
+        _emit(payload, json_output, _render_graph_result)
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 @line_app.command("create")
 def line_create(
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """Create a line in the selected workspace."""
@@ -171,13 +209,16 @@ def line_create(
         config, operational = _command_config(overrides, {"workspace"})
         workspace = operational.pop("workspace", None)
         _reject_operational(operational)
-        typer.echo(create_line(config, workspace).display)
+        identifier = create_line(config, workspace)
+        payload = {"line": _identifier_payload(identifier)}
+        _emit(payload, json_output, lambda data: typer.echo(data["line"]["id"]))
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 @line_app.command("list")
 def line_list(
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """List lines in the selected workspace."""
@@ -187,28 +228,24 @@ def line_list(
         workspace = operational.pop("workspace", None)
         _reject_operational(operational)
         result = list_lines(config, workspace)
-        workspace_label = result.workspace_name or result.workspace.display
-        _CONSOLE.print(
-            f"[bold]Workspace:[/bold] {workspace_label} ({result.workspace.display})"
-        )
-        if not result.lines:
-            _CONSOLE.print(f"No lines in workspace {workspace_label}.")
-            return
-        table = Table(box=None)
-        table.add_column("ID")
-        table.add_column("CREATED")
-        table.add_column("GRAPHS", justify="right")
-        table.add_column("LATEST")
-        for line in result.lines:
-            table.add_row(
-                line.identifier.display,
-                line.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
-                str(line.graph_count),
-                "*" if line.latest else "",
-            )
-        _CONSOLE.print(table)
+        payload = {
+            "workspace": {
+                **_identifier_payload(result.workspace),
+                "name": result.workspace_name,
+            },
+            "lines": [
+                {
+                    **_identifier_payload(line.identifier),
+                    "created_at": line.created_at.isoformat().replace("+00:00", "Z"),
+                    "graphs": line.graph_count,
+                    "latest": line.latest,
+                }
+                for line in result.lines
+            ],
+        }
+        _emit(payload, json_output, _render_line_list)
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 @line_app.command("status")
@@ -217,6 +254,7 @@ def line_status(
         str | None,
         typer.Argument(help="Lowercase typed line ID.", metavar="LINE"),
     ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
     """Show status for a line, defaulting to the latest in the selected workspace."""
@@ -228,33 +266,46 @@ def line_status(
         workspace = operational.pop("workspace", None)
         _reject_operational(operational)
         status = get_line_status(config, target, workspace)
-        line_label = status.identifier.display
-        if status.selected_latest:
-            workspace_label = status.workspace_name or status.workspace.display
-            line_label = f"{line_label} (latest in workspace {workspace_label})"
-        _status_table(
-            [
-                ("Line", line_label),
-                ("Workspace", status.workspace.display),
-                ("Graphs", str(status.graph_count)),
-                ("Created", status.created_at),
-                ("Phase", status.phase),
-                ("Database", status.database_state),
-            ]
-        )
+        payload = {
+            "line": _identifier_payload(status.identifier),
+            "workspace": {
+                **_identifier_payload(status.workspace),
+                "name": status.workspace_name,
+            },
+            "graphs": status.graph_count,
+            "created_at": status.created_at,
+            "phase": status.phase,
+            "database": status.database_state,
+            "selected_latest": status.selected_latest,
+        }
+        _emit(payload, json_output, _render_line_status)
 
-    _run(execute)
+    _run(execute, json_output)
 
 
 def main() -> None:
     app(prog_name="graphlab")
 
 
-def _run(action: Callable[[], None]) -> None:
+def _run(action: Callable[[], None], json_output: bool) -> None:
     try:
         action()
     except (GraphoratoryError, OSError, ValueError) as exc:
-        _ERROR_CONSOLE.print(f"[red]error:[/red] {exc}")
+        if json_output:
+            typer.echo(
+                json.dumps(
+                    {
+                        "error": {
+                            "message": str(exc),
+                            "type": type(exc).__name__,
+                        }
+                    },
+                    sort_keys=True,
+                ),
+                err=True,
+            )
+        else:
+            _ERROR_CONSOLE.print(f"[red]error:[/red] {exc}")
         raise typer.Exit(2) from exc
 
 
@@ -312,24 +363,127 @@ def _reject_operational(values: dict[str, str]) -> None:
         raise ValueError(f"unexpected command parameter: {sorted(values)[0]}")
 
 
-def _workspace_status_rows(status: WorkspaceStatus) -> list[tuple[str, str]]:
+def _identifier_payload(identifier: Identifier) -> dict[str, str]:
+    return {
+        "id": identifier.display,
+        "hash": identifier.digest,
+    }
+
+
+def _workspace_status_payload(status: WorkspaceStatus) -> dict[str, Any]:
+    return {
+        "workspace": {
+            **_identifier_payload(status.identifier),
+            "name": status.name,
+        },
+        "created_at": status.created_at,
+        "config": status.config_source,
+        "generator": status.generator,
+        "graphs": status.graph_count,
+        "order_range": {
+            "min": status.min_order,
+            "max": status.max_order,
+        },
+        "lines": status.line_count,
+        "database": status.database_state,
+        "disk_bytes": status.disk_bytes,
+    }
+
+
+def _emit(
+    payload: dict[str, Any],
+    json_output: bool,
+    rich_renderer: Callable[[dict[str, Any]], None],
+) -> None:
+    if json_output:
+        typer.echo(json.dumps(payload, ensure_ascii=False, sort_keys=True))
+    else:
+        rich_renderer(payload)
+
+
+def _render_graph_result(payload: dict[str, Any]) -> None:
+    typer.echo(f"generated {payload['graph_count']} graphs")
+    if payload["rejected_invalid_candidates"] or payload["duplicate_candidates"]:
+        _ERROR_CONSOLE.print(
+            f"candidate attempts: {payload['attempted_candidates']}; "
+            f"invalid candidates: {payload['rejected_invalid_candidates']}; "
+            f"duplicate candidates: {payload['duplicate_candidates']}"
+        )
+
+
+def _render_workspace_status(
+    payload: dict[str, Any],
+    *,
+    title: str | None = None,
+) -> None:
+    _status_table(_workspace_status_rows(payload), title=title)
+
+
+def _workspace_status_rows(payload: dict[str, Any]) -> list[tuple[str, str]]:
+    workspace = payload["workspace"]
+    order_range = payload["order_range"]
     return [
-        ("Name", status.name or "—"),
-        ("Workspace", status.identifier.display),
-        ("Created", status.created_at),
-        ("Config", status.config_source),
-        ("Generator", status.generator or "—"),
-        ("Graphs", str(status.graph_count)),
+        ("Name", workspace["name"] or "—"),
+        ("Workspace", workspace["id"]),
+        ("Created", payload["created_at"]),
+        ("Config", payload["config"]),
+        ("Generator", payload["generator"] or "—"),
+        ("Graphs", str(payload["graphs"])),
         (
             "Order range",
-            f"{status.min_order}..{status.max_order}"
-            if status.min_order is not None
+            f"{order_range['min']}..{order_range['max']}"
+            if order_range["min"] is not None
             else "—",
         ),
-        ("Lines", str(status.line_count)),
-        ("Database", status.database_state),
-        ("Disk usage", _format_bytes(status.disk_bytes)),
+        ("Lines", str(payload["lines"])),
+        ("Database", payload["database"]),
+        ("Disk usage", _format_bytes(payload["disk_bytes"])),
     ]
+
+
+def _render_line_list(payload: dict[str, Any]) -> None:
+    workspace = payload["workspace"]
+    workspace_label = workspace["name"] or workspace["id"]
+    _CONSOLE.print(f"[bold]Workspace:[/bold] {workspace_label} ({workspace['id']})")
+    if not payload["lines"]:
+        _CONSOLE.print(f"No lines in workspace {workspace_label}.")
+        return
+    table = Table(box=None)
+    table.add_column("ID")
+    table.add_column("CREATED")
+    table.add_column("GRAPHS", justify="right")
+    table.add_column("LATEST")
+    for line in payload["lines"]:
+        table.add_row(
+            line["id"],
+            _format_created_at(line["created_at"]),
+            str(line["graphs"]),
+            "*" if line["latest"] else "",
+        )
+    _CONSOLE.print(table)
+
+
+def _format_created_at(value: str) -> str:
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return parsed.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
+def _render_line_status(payload: dict[str, Any]) -> None:
+    line_label = payload["line"]["id"]
+    if payload["selected_latest"]:
+        workspace = payload["workspace"]
+        workspace_label = workspace["name"] or workspace["id"]
+        line_label = f"{line_label} (latest in workspace {workspace_label})"
+    _status_table(
+        [
+            ("Line", line_label),
+            ("Workspace", payload["workspace"]["id"]),
+            ("Graphs", str(payload["graphs"])),
+            ("Created", payload["created_at"]),
+            ("Phase", payload["phase"]),
+            ("Database", payload["database"]),
+        ]
+    )
 
 
 def _status_table(
