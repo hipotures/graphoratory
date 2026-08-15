@@ -54,8 +54,11 @@ from graphoratory.graphs import (
 )
 from graphoratory.identifiers import Identifier, ObjectType
 from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atomic
-from graphoratory.science.baseline import UniformTwoSwitchBaseline
-from graphoratory.science.evaluator import IndependentEvaluator, score_payload
+from graphoratory.science.baseline import (
+    SUPPORTED_BASELINES,
+    baseline_for_selector,
+)
+from graphoratory.science.evaluator import IndependentEvaluator, Policy, score_payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +134,7 @@ class LineListResult:
 @dataclass(frozen=True, slots=True)
 class BaselineEvaluationResult:
     evaluation_hash: str
+    baseline_selector: str
     baseline: str
     line: Identifier
     workspace: Identifier
@@ -468,7 +472,43 @@ def evaluate_baseline(
     config: AppConfig,
     line_value: str | None = None,
     workspace_value: str | None = None,
+    baseline_selector: str = "random",
 ) -> BaselineEvaluationResult:
+    baseline = baseline_for_selector(baseline_selector)
+    selection, database, graphs = _baseline_evaluation_input(
+        config,
+        line_value,
+        workspace_value,
+    )
+    return _evaluate_loaded_baseline(selection, database, graphs, baseline)
+
+
+def evaluate_baselines(
+    config: AppConfig,
+    line_value: str | None = None,
+    workspace_value: str | None = None,
+) -> tuple[BaselineEvaluationResult, ...]:
+    selection, database, graphs = _baseline_evaluation_input(
+        config,
+        line_value,
+        workspace_value,
+    )
+    return tuple(
+        _evaluate_loaded_baseline(
+            selection,
+            database,
+            graphs,
+            baseline_for_selector(selector),
+        )
+        for selector in SUPPORTED_BASELINES
+    )
+
+
+def _baseline_evaluation_input(
+    config: AppConfig,
+    line_value: str | None,
+    workspace_value: str | None,
+) -> tuple[CommandLineSelection, Path, tuple[Graph, ...]]:
     selection = resolve_line_for_command(config, line_value, workspace_value)
     database = _workspace_database(selection.workspace)
     graph_hashes = line_graph_hashes(database, selection.identifier.digest)
@@ -493,7 +533,15 @@ def evaluate_baseline(
             "line artifact and workspace index disagree; run `graphlab workspace reindex`"
         )
     graphs = _line_graphs(selection.workspace, graph_hashes)
-    baseline = UniformTwoSwitchBaseline()
+    return selection, database, graphs
+
+
+def _evaluate_loaded_baseline(
+    selection: CommandLineSelection,
+    database: Path,
+    graphs: tuple[Graph, ...],
+    baseline: Policy,
+) -> BaselineEvaluationResult:
     started = time.perf_counter()
     result = IndependentEvaluator().evaluate(graphs, baseline)
     wall_seconds = time.perf_counter() - started
@@ -553,6 +601,7 @@ def evaluate_baseline(
     assert isinstance(resources, dict)
     return BaselineEvaluationResult(
         evaluation_hash=evaluation_hash,
+        baseline_selector=str(baseline.provenance()["selector"]),
         baseline=baseline.name,
         line=selection.identifier,
         workspace=selection.workspace.identifier,

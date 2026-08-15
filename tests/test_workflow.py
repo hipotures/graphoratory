@@ -12,6 +12,7 @@ from graphoratory.application import (
     create_line,
     create_workspace,
     evaluate_baseline,
+    evaluate_baselines,
     generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
@@ -359,6 +360,33 @@ def test_baseline_evaluation_uses_exact_sql_ordered_line_membership(
     assert result.graph_count == len(expected)
 
 
+def test_both_baselines_use_the_same_selected_line_membership(
+    app_config: AppConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, "both-baseline-membership")
+    generate_workspace_graphs(app_config, workspace.display)
+    requested = create_line(app_config, workspace.display)
+    create_line(app_config, workspace.display)
+    database = _workspace_database(app_config, workspace)
+    expected = application.line_graph_hashes(database, requested.digest)
+    observed: list[tuple[str, tuple[str, ...]]] = []
+    _install_fake_evaluator(monkeypatch, observed_runs=observed)
+
+    results = evaluate_baselines(
+        app_config,
+        requested.display,
+        workspace.display,
+    )
+
+    assert observed == [
+        ("heg_uniform_two_switch", expected),
+        ("heg_forbidden_cycle_break", expected),
+    ]
+    assert [result.baseline_selector for result in results] == ["random", "structural"]
+    assert all(result.line == requested for result in results)
+
+
 def test_baseline_evaluation_does_not_scan_line_or_evaluation_directories(
     app_config: AppConfig,
     monkeypatch: pytest.MonkeyPatch,
@@ -447,11 +475,15 @@ def test_published_evaluation_survives_sqlite_indexing_failure(
 def _install_fake_evaluator(
     monkeypatch: pytest.MonkeyPatch,
     observed: list[tuple[str, ...]] | None = None,
+    observed_runs: list[tuple[str, tuple[str, ...]]] | None = None,
 ) -> None:
     class FakeEvaluator:
-        def evaluate(self, graphs, _policy):  # type: ignore[no-untyped-def]
+        def evaluate(self, graphs, policy):  # type: ignore[no-untyped-def]
+            graph_hashes = tuple(graph.graph_hash for graph in graphs)
             if observed is not None:
-                observed.append(tuple(graph.graph_hash for graph in graphs))
+                observed.append(graph_hashes)
+            if observed_runs is not None:
+                observed_runs.append((policy.name, graph_hashes))
             return EvaluationResult(
                 RationalInterval(Fraction(1, 2), Fraction(1, 2)),
                 EvaluationDiagnostics(

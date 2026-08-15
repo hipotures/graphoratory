@@ -11,7 +11,7 @@ import graphoratory.application as application
 from graphoratory.application import create_line, create_workspace, generate_workspace_graphs
 from graphoratory.cli import app
 from graphoratory.config import AppConfig
-from graphoratory.database.core import database_path, delete_database
+from graphoratory.database.core import database_path, delete_database, projection_counts
 from graphoratory.jsonio import read_json
 from graphoratory.science.evaluator import (
     EvaluationDiagnostics,
@@ -131,14 +131,21 @@ def test_json_output_covers_every_command(
     )
     evaluation_payload = json.loads(evaluated.stdout)
     assert evaluated.exit_code == 0
-    assert evaluation_payload["baseline"] == "heg_uniform_two_switch"
-    assert evaluation_payload["line"] == line
-    assert evaluation_payload["graphs"] == 2
-    assert evaluation_payload["score"]["fitness"]["lower"] == {
-        "numerator": 1,
-        "denominator": 2,
-    }
-    assert evaluation_payload["database"] == "indexed"
+    assert [
+        (result["baseline_selector"], result["baseline"])
+        for result in evaluation_payload["baselines"]
+    ] == [
+        ("random", "heg_uniform_two_switch"),
+        ("structural", "heg_forbidden_cycle_break"),
+    ]
+    for result in evaluation_payload["baselines"]:
+        assert result["line"] == line
+        assert result["graphs"] == 2
+        assert result["score"]["fitness"]["lower"] == {
+            "numerator": 1,
+            "denominator": 2,
+        }
+        assert result["database"] == "indexed"
 
     reindexed = runner.invoke(
         app,
@@ -238,16 +245,30 @@ def test_baseline_rich_and_json_outputs_share_semantics(
 
     json_result = runner.invoke(
         app,
-        ["baseline", "evaluate", line.display, "--json", f"config={config_file}"],
+        [
+            "baseline",
+            "evaluate",
+            line.display,
+            "--json",
+            "baseline=random",
+            f"config={config_file}",
+        ],
     )
     rich_result = runner.invoke(
         app,
-        ["baseline", "evaluate", line.display, f"config={config_file}"],
+        [
+            "baseline",
+            "evaluate",
+            line.display,
+            "baseline=random",
+            f"config={config_file}",
+        ],
     )
 
     payload = json.loads(json_result.stdout)
     rich_text = Text.from_ansi(rich_result.stdout).plain
     assert json_result.exit_code == rich_result.exit_code == 0
+    assert payload["baseline_selector"] == "random"
     assert payload["baseline"] in rich_text
     assert payload["line"]["id"] in rich_text
     assert str(payload["graphs"]) in rich_text
@@ -273,6 +294,111 @@ def test_baseline_rich_and_json_outputs_share_semantics(
     assert "Throughput" not in rich_text
     assert "1/3" not in rich_text
     assert payload["database"] in rich_text
+
+
+def test_baseline_default_evaluates_both_with_rich_json_parity(
+    app_config: AppConfig,
+    config_file: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, "both-baselines")
+    generate_workspace_graphs(app_config, workspace.display)
+    line = create_line(app_config, workspace.display)
+    _set_active_workspace(config_file, "both-baselines")
+    observed: list[str] = []
+    _install_fake_evaluator(monkeypatch, observed_baselines=observed)
+
+    json_result = runner.invoke(
+        app,
+        ["baseline", "evaluate", "--json", f"config={config_file}"],
+    )
+    rich_result = runner.invoke(
+        app,
+        ["baseline", "evaluate", f"config={config_file}"],
+    )
+
+    payload = json.loads(json_result.stdout)
+    rich_text = Text.from_ansi(rich_result.stdout).plain
+    assert json_result.exit_code == rich_result.exit_code == 0
+    assert observed == [
+        "heg_uniform_two_switch",
+        "heg_forbidden_cycle_break",
+        "heg_uniform_two_switch",
+        "heg_forbidden_cycle_break",
+    ]
+    assert [
+        (result["baseline_selector"], result["baseline"])
+        for result in payload["baselines"]
+    ] == [
+        ("random", "heg_uniform_two_switch"),
+        ("structural", "heg_forbidden_cycle_break"),
+    ]
+    assert all(result["line"]["id"] == line.display for result in payload["baselines"])
+    assert "random (heg_uniform_two_switch)" in rich_text
+    assert "structural (heg_forbidden_cycle_break)" in rich_text
+    database = database_path(app_config.workspace.root / workspace.display)
+    assert projection_counts(database)["evaluations"] == 4  # type: ignore[index]
+
+
+@pytest.mark.parametrize(
+    ("selector", "operator"),
+    [
+        ("random", "heg_uniform_two_switch"),
+        ("structural", "heg_forbidden_cycle_break"),
+    ],
+)
+def test_baseline_selector_evaluates_only_requested_baseline(
+    selector: str,
+    operator: str,
+    app_config: AppConfig,
+    config_file: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, f"baseline-{selector}")
+    generate_workspace_graphs(app_config, workspace.display)
+    line = create_line(app_config, workspace.display)
+    _set_active_workspace(config_file, f"baseline-{selector}")
+    observed: list[str] = []
+    _install_fake_evaluator(monkeypatch, observed_baselines=observed)
+
+    result = runner.invoke(
+        app,
+        [
+            "baseline",
+            "evaluate",
+            "--json",
+            f"baseline={selector}",
+            f"config={config_file}",
+        ],
+    )
+
+    payload = json.loads(result.stdout)
+    assert result.exit_code == 0
+    assert observed == [operator]
+    assert payload["baseline_selector"] == selector
+    assert payload["baseline"] == operator
+    assert payload["line"]["id"] == line.display
+    assert "baselines" not in payload
+
+
+def test_invalid_baseline_selector_fails_clearly(config_file: Path) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "baseline",
+            "evaluate",
+            "--json",
+            "baseline=unknown",
+            f"config={config_file}",
+        ],
+    )
+
+    payload = json.loads(result.stderr)
+    assert result.exit_code == 2
+    assert payload["error"]["type"] == "ValueError"
+    assert payload["error"]["message"] == (
+        "invalid baseline 'unknown'; expected one of: random, structural"
+    )
 
 
 def test_workspace_reindex_only_repairs_selected_workspace(
@@ -413,11 +539,14 @@ def _set_active_workspace(path: Path, value: str) -> None:
 def _install_fake_evaluator(
     monkeypatch: pytest.MonkeyPatch,
     score: RationalInterval | None = None,
+    observed_baselines: list[str] | None = None,
 ) -> None:
     evaluation_score = score or RationalInterval(Fraction(1, 2), Fraction(1, 2))
 
     class FakeEvaluator:
-        def evaluate(self, graphs, _policy):  # type: ignore[no-untyped-def]
+        def evaluate(self, graphs, policy):  # type: ignore[no-untyped-def]
+            if observed_baselines is not None:
+                observed_baselines.append(policy.name)
             return EvaluationResult(
                 evaluation_score,
                 EvaluationDiagnostics(

@@ -6,7 +6,11 @@ from sglab.model import BitGraph  # type: ignore[import-untyped]
 
 import graphoratory.science.evaluator as evaluator_module
 from graphoratory.graphs import Graph
-from graphoratory.science.baseline import UniformTwoSwitchBaseline
+from graphoratory.science.baseline import (
+    ForbiddenCycleBreakBaseline,
+    UniformTwoSwitchBaseline,
+    baseline_for_selector,
+)
 from graphoratory.science.evaluator import (
     EnergyScale,
     IndependentEvaluator,
@@ -41,6 +45,18 @@ def test_baseline_matches_frozen_heg_k5_rewrite() -> None:
         (2, 4),
         (3, 4),
     )
+
+
+def test_legacy_baseline_selector_mapping_is_exact() -> None:
+    random = baseline_for_selector("random")
+    structural = baseline_for_selector("structural")
+
+    assert isinstance(random, UniformTwoSwitchBaseline)
+    assert random.name == "heg_uniform_two_switch"
+    assert random.provenance()["operator"] == "uniform_two_edge_switch"
+    assert isinstance(structural, ForbiddenCycleBreakBaseline)
+    assert structural.name == "heg_forbidden_cycle_break"
+    assert structural.provenance()["operator"] == "forbidden_cycle_break_switch"
 
 
 def test_energy_scale_matches_legacy_hand_vector() -> None:

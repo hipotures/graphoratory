@@ -21,6 +21,7 @@ from graphoratory.application import (
     create_line,
     create_workspace,
     evaluate_baseline,
+    evaluate_baselines,
     generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
@@ -89,7 +90,7 @@ line_app = typer.Typer(
     no_args_is_help=True,
 )
 baseline_app = typer.Typer(
-    help="Evaluate the frozen scientific baseline.",
+    help="Evaluate the frozen scientific baselines.",
     no_args_is_help=True,
 )
 app.add_typer(workspace_app, name="workspace")
@@ -345,17 +346,33 @@ def baseline_evaluate(
     json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
-    """Evaluate the frozen baseline on one line's fixed graph membership."""
+    """Evaluate one or both frozen baselines on a line's fixed graph membership."""
 
     def execute() -> None:
         target, command_overrides = _positional_or_assignment(line, overrides)
-        config, operational = _command_config(command_overrides, {"line", "workspace"})
+        config, operational = _command_config(
+            command_overrides,
+            {"baseline", "line", "workspace"},
+        )
         target = _explicit_target(target, operational.pop("line", None), "line")
         workspace = operational.pop("workspace", None)
+        baseline = operational.pop("baseline", None)
         _reject_operational(operational)
-        result = evaluate_baseline(config, target, workspace)
-        payload = _baseline_evaluation_payload(result)
-        _emit(payload, json_output, _render_baseline_evaluation)
+        if baseline is not None:
+            result = evaluate_baseline(
+                config,
+                target,
+                workspace,
+                baseline_selector=baseline,
+            )
+            payload = _baseline_evaluation_payload(result)
+            _emit(payload, json_output, _render_baseline_evaluation)
+            return
+        results = evaluate_baselines(config, target, workspace)
+        payload = {
+            "baselines": [_baseline_evaluation_payload(result) for result in results]
+        }
+        _emit(payload, json_output, _render_baseline_evaluations)
 
     _run(execute, json_output)
 
@@ -473,6 +490,7 @@ def _workspace_status_payload(status: WorkspaceStatus) -> dict[str, Any]:
 
 def _baseline_evaluation_payload(result: BaselineEvaluationResult) -> dict[str, Any]:
     return {
+        "baseline_selector": result.baseline_selector,
         "baseline": result.baseline,
         "line": _identifier_payload(result.line),
         "workspace": {
@@ -624,7 +642,10 @@ def _render_baseline_evaluation(payload: dict[str, Any]) -> None:
         line_label = f"{line_label} (latest)"
     _status_table(
         [
-            ("Baseline", payload["baseline"]),
+            (
+                "Baseline",
+                f"{payload['baseline_selector']} ({payload['baseline']})",
+            ),
             ("Line", line_label),
             ("Workspace", payload["workspace"]["id"]),
             ("Episodes", str(diagnostics["episodes"])),
@@ -644,6 +665,13 @@ def _render_baseline_evaluation(payload: dict[str, Any]) -> None:
             ("Database", payload["database"]),
         ]
     )
+
+
+def _render_baseline_evaluations(payload: dict[str, Any]) -> None:
+    for index, result in enumerate(payload["baselines"]):
+        if index:
+            _CONSOLE.print()
+        _render_baseline_evaluation(result)
 
 
 def _fraction_from_payload(payload: dict[str, int]) -> Fraction:
