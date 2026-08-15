@@ -1,7 +1,7 @@
 # graphoratory
 
 Graphoratory is a small Python 3.12 application for creating workspaces, generating
-validated graph corpora, and assigning a fixed graph subset to an independent line.
+validated workspace graphs, and assigning a fixed graph subset to an independent line.
 The `graphlab` command is intentionally thin; its operations call reusable application
 services.
 
@@ -49,14 +49,13 @@ uv run graphlab line status line=ln-xxxxxxxx
 uv run graphlab workspace reindex workspace=ws-xxxxxxxx
 ```
 
-`line status` always requires an explicit line. `line create` normally selects the most
-recent completed corpus and also accepts an explicit `corpus=cp-xxxxxxxx`.
+`line status` always requires an explicit line. A workspace accepts one immutable graph
+generation; a second `graph generate` fails instead of overwriting it.
 
 Typed short IDs and artifact directory names are always lowercase:
 
 ```text
 ws-xxxxxxxx  workspace
-cp-xxxxxxxx  graph corpus
 gr-xxxxxxxx  graph
 ln-xxxxxxxx  line
 ```
@@ -71,17 +70,16 @@ workspaces/
     ├── manifest.json
     ├── index.sqlite3
     ├── graphs/
-    │   └── cp-xxxxxxxx/
-    │       ├── manifest.json
-    │       └── graphs.jsonl.gz
+    │   ├── manifest.json
+    │   └── graphs.jsonl.gz
     └── lines/
         └── ln-xxxxxxxx/
             └── manifest.json
 ```
 
-Completed filesystem artifacts are immutable and authoritative. Corpus graph records are
+Completed filesystem artifacts are immutable and authoritative. Graph records are
 packed into gzip-compressed JSON Lines. SQLite is only a query projection. If it is absent
-or inconsistent, `workspace reindex` reconstructs the workspace, corpora, graphs, lines,
+or inconsistent, `workspace reindex` reconstructs the workspace, graphs, lines,
 and line membership from artifacts and checks the rebuilt database before publication.
 Status commands inspect but never repair data.
 

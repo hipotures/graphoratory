@@ -10,7 +10,7 @@ from rich.table import Table
 from graphoratory.application import (
     create_line,
     create_workspace,
-    generate_graph_corpus,
+    generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
     reindex_workspace,
@@ -66,7 +66,7 @@ def _operational_keys(command: Command) -> set[str]:
     if command in {_workspace_status, _workspace_reindex, _graph_generate}:
         return {"workspace"}
     if command is _line_create:
-        return {"workspace", "corpus"}
+        return {"workspace"}
     if command is _line_status:
         return {"line"}
     return set()
@@ -85,7 +85,6 @@ def _workspace_status(config: AppConfig, values: dict[str, str]) -> None:
         ("Workspace", status.identifier.display),
         ("Created", status.created_at),
         ("Config", status.config_source),
-        ("Corpora", str(status.corpus_count)),
         ("Graphs", str(status.graph_count)),
         (
             "Order range",
@@ -108,8 +107,8 @@ def _workspace_reindex(config: AppConfig, values: dict[str, str]) -> None:
 def _graph_generate(config: AppConfig, values: dict[str, str]) -> None:
     workspace = _required(values, "workspace")
     _reject_operational(values)
-    result = generate_graph_corpus(config, workspace)
-    print(result.identifier.display)
+    result = generate_workspace_graphs(config, workspace)
+    print(f"generated {result.graph_count} graphs")
     if result.duplicates:
         _ERROR_CONSOLE.print(
             f"generation attempts: {result.attempts}; duplicate attempts: {result.duplicates}"
@@ -118,13 +117,8 @@ def _graph_generate(config: AppConfig, values: dict[str, str]) -> None:
 
 def _line_create(config: AppConfig, values: dict[str, str]) -> None:
     workspace = _required(values, "workspace")
-    corpus = values.pop("corpus", None)
     _reject_operational(values)
-    identifier = create_line(
-        config,
-        workspace,
-        corpus,
-    )
+    identifier = create_line(config, workspace)
     print(identifier.display)
 
 
@@ -136,7 +130,6 @@ def _line_status(config: AppConfig, values: dict[str, str]) -> None:
         [
             ("Line", status.identifier.display),
             ("Workspace", status.workspace.display),
-            ("Corpus", status.corpus.display),
             ("Graphs", str(status.graph_count)),
             ("Created", status.created_at),
             ("Phase", status.phase),
@@ -184,7 +177,7 @@ Commands:
   workspace status workspace=ws-xxxxxxxx
   workspace reindex workspace=ws-xxxxxxxx
   graph generate workspace=ws-xxxxxxxx
-  line create workspace=ws-xxxxxxxx [corpus=cp-xxxxxxxx]
+  line create workspace=ws-xxxxxxxx
   line status line=ln-xxxxxxxx
 
 All commands load experiment.toml by default. Use config=PATH for another file."""

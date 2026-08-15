@@ -2,19 +2,19 @@ import gzip
 from pathlib import Path
 
 from graphoratory.graphs import (
-    generate_corpus,
+    generate_graphs,
     read_graphs_jsonl_gz,
     write_graphs_jsonl_gz,
 )
 
 
 def test_generation_is_deterministic_and_structurally_valid(tmp_path: Path) -> None:
-    first = generate_corpus(count=12, min_order=10, max_order=15, seed=401)
-    second = generate_corpus(count=12, min_order=10, max_order=15, seed=401)
-    assert [graph.hash_full for graph in first.graphs] == [
-        graph.hash_full for graph in second.graphs
+    first = generate_graphs(count=12, min_order=10, max_order=15, seed=401)
+    second = generate_graphs(count=12, min_order=10, max_order=15, seed=401)
+    assert [graph.graph_hash for graph in first.graphs] == [
+        graph.graph_hash for graph in second.graphs
     ]
-    assert len({graph.hash_full for graph in first.graphs}) == 12
+    assert len({graph.graph_hash for graph in first.graphs}) == 12
     for graph in first.graphs:
         assert 10 <= graph.order <= 15
         assert graph.is_connected()

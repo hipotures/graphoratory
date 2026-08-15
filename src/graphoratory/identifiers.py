@@ -13,29 +13,28 @@ class ObjectType(StrEnum):
     WORKSPACE = "ws"
     LINE = "ln"
     GRAPH = "gr"
-    CORPUS = "cp"
 
 
 _FULL_HASH = re.compile(r"^[0-9a-f]{64}$")
-_TYPED_ID = re.compile(r"^(ws|ln|gr|cp)-([0-9a-f]{8}|[0-9a-f]{64})$")
+_TYPED_ID = re.compile(r"^(ws|ln|gr)-([0-9a-f]{8}|[0-9a-f]{64})$")
 
 
 @dataclass(frozen=True, slots=True)
 class Identifier:
     kind: ObjectType
-    hash_full: str
+    digest: str
 
     def __post_init__(self) -> None:
-        if not _FULL_HASH.fullmatch(self.hash_full):
+        if not _FULL_HASH.fullmatch(self.digest):
             raise IdentifierError("full hash must contain exactly 64 lowercase hex characters")
 
     @property
-    def hash_short(self) -> str:
-        return self.hash_full[:8]
+    def short(self) -> str:
+        return self.digest[:8]
 
     @property
     def display(self) -> str:
-        return f"{self.kind.value}-{self.hash_short}"
+        return f"{self.kind.value}-{self.short}"
 
     @classmethod
     def from_bytes(cls, kind: ObjectType, payload: bytes) -> Identifier:

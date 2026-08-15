@@ -9,8 +9,8 @@ from alembic.config import Config
 from sqlalchemy import Connection, Engine, create_engine, event, func, select, text
 from sqlalchemy.exc import SQLAlchemyError
 
-from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE, corpus_directories
-from graphoratory.database.schema import corpora, graphs, line_graphs, lines, workspaces
+from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE
+from graphoratory.database.schema import graphs, line_graphs, lines, workspaces
 from graphoratory.graphs import Graph, read_graphs_jsonl_gz
 from graphoratory.jsonio import read_json
 
@@ -44,43 +44,29 @@ def migrate(path: Path) -> None:
 def index_workspace(connection: Connection, manifest: dict[str, Any], path: Path) -> None:
     connection.execute(
         workspaces.insert().values(
-            hash_full=manifest["hash_full"],
-            hash_short=str(manifest["hash_full"])[:8],
+            workspace_hash=manifest["workspace_hash"],
+            workspace_short=str(manifest["workspace_hash"])[:8],
             created_at=manifest["created_at"],
             manifest_path=str(path / "manifest.json"),
         )
     )
 
 
-def index_corpus(
+def index_graphs(
     connection: Connection,
     manifest: dict[str, Any],
-    corpus_path: Path,
-    corpus_graphs: Iterable[Graph],
+    workspace_graphs: Iterable[Graph],
 ) -> None:
-    connection.execute(
-        corpora.insert().values(
-            hash_full=manifest["hash_full"],
-            hash_short=str(manifest["hash_full"])[:8],
-            workspace_hash=manifest["workspace_hash"],
-            created_at=manifest["created_at"],
-            graph_count=manifest["graph_count"],
-            min_order=manifest["generation"]["min_order"],
-            max_order=manifest["generation"]["max_order"],
-            manifest_path=str(corpus_path / "manifest.json"),
-            graph_file=str(corpus_path / GRAPH_FILE),
-        )
-    )
     connection.execute(
         graphs.insert(),
         [
             {
-                "corpus_hash": manifest["hash_full"],
-                "hash_full": graph.hash_full,
-                "hash_short": graph.hash_full[:8],
+                "workspace_hash": manifest["workspace_hash"],
+                "graph_hash": graph.graph_hash,
+                "graph_short": graph.graph_hash[:8],
                 "graph_order": graph.order,
             }
-            for graph in corpus_graphs
+            for graph in workspace_graphs
         ],
     )
 
@@ -88,10 +74,9 @@ def index_corpus(
 def index_line(connection: Connection, manifest: dict[str, Any], line_path: Path) -> None:
     connection.execute(
         lines.insert().values(
-            hash_full=manifest["hash_full"],
-            hash_short=str(manifest["hash_full"])[:8],
+            line_hash=manifest["line_hash"],
+            line_short=str(manifest["line_hash"])[:8],
             workspace_hash=manifest["workspace_hash"],
-            corpus_hash=manifest["corpus_hash"],
             created_at=manifest["created_at"],
             graph_count=len(manifest["graph_hashes"]),
             manifest_path=str(line_path / "manifest.json"),
@@ -101,8 +86,7 @@ def index_line(connection: Connection, manifest: dict[str, Any], line_path: Path
         line_graphs.insert(),
         [
             {
-                "line_hash": manifest["hash_full"],
-                "corpus_hash": manifest["corpus_hash"],
+                "line_hash": manifest["line_hash"],
                 "graph_hash": graph_hash,
                 "position": position,
             }
@@ -122,11 +106,13 @@ def rebuild_database(workspace_path: Path) -> None:
             with engine.begin() as connection:
                 workspace_manifest = read_json(workspace_path / "manifest.json")
                 index_workspace(connection, workspace_manifest, workspace_path)
-                for corpus_path in corpus_directories(workspace_path):
-                    corpus_manifest = read_json(corpus_path / "manifest.json")
-                    corpus_graphs = tuple(read_graphs_jsonl_gz(corpus_path / GRAPH_FILE))
-                    _validate_corpus_manifest(corpus_manifest, corpus_graphs)
-                    index_corpus(connection, corpus_manifest, corpus_path, corpus_graphs)
+                graphs_path = workspace_path / "graphs"
+                graphs_manifest_path = graphs_path / "manifest.json"
+                if graphs_manifest_path.is_file():
+                    graphs_manifest = read_json(graphs_manifest_path)
+                    workspace_graphs = tuple(read_graphs_jsonl_gz(graphs_path / GRAPH_FILE))
+                    _validate_graphs_manifest(graphs_manifest, workspace_graphs)
+                    index_graphs(connection, graphs_manifest, workspace_graphs)
                 _index_lines_from_artifacts(connection, workspace_path)
             with engine.connect() as connection:
                 result = connection.execute(text("PRAGMA integrity_check")).scalar_one()
@@ -166,7 +152,6 @@ def projection_counts(path: Path) -> dict[str, int] | None:
         with engine.connect() as connection:
             return {
                 "workspaces": connection.scalar(select(func.count()).select_from(workspaces)) or 0,
-                "corpora": connection.scalar(select(func.count()).select_from(corpora)) or 0,
                 "graphs": connection.scalar(select(func.count()).select_from(graphs)) or 0,
                 "lines": connection.scalar(select(func.count()).select_from(lines)) or 0,
                 "line_graphs": connection.scalar(select(func.count()).select_from(line_graphs))
@@ -188,12 +173,14 @@ def _index_lines_from_artifacts(connection: Connection, workspace_path: Path) ->
             index_line(connection, read_json(manifest_path), line_path)
 
 
-def _validate_corpus_manifest(manifest: dict[str, Any], corpus_graphs: tuple[Graph, ...]) -> None:
-    hashes = [graph.hash_full for graph in corpus_graphs]
+def _validate_graphs_manifest(
+    manifest: dict[str, Any], workspace_graphs: tuple[Graph, ...]
+) -> None:
+    hashes = [graph.graph_hash for graph in workspace_graphs]
     if hashes != manifest.get("graph_hashes"):
-        raise ValueError("corpus graph records do not match its manifest")
+        raise ValueError("graph records do not match their manifest")
     if len(hashes) != manifest.get("graph_count"):
-        raise ValueError("corpus graph count does not match its manifest")
+        raise ValueError("graph count does not match its manifest")
 
 
 def _delete_sidecars(path: Path) -> None:

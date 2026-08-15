@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "graphoratory"
 version = "0.1.0"
-description = "Filesystem-first graph corpus laboratory"
+description = "Filesystem-first graph laboratory"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }

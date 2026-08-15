@@ -37,14 +37,14 @@ class Graph:
         return cls(order, tuple(sorted((min(u, v), max(u, v)) for u, v in edges)))
 
     @property
-    def hash_full(self) -> str:
+    def graph_hash(self) -> str:
         return hashlib.sha256(canonical_json_bytes(self.identity_payload())).hexdigest()
 
     def identity_payload(self) -> dict[str, Any]:
         return {"edges": [list(edge) for edge in self.edges], "order": self.order}
 
     def record(self) -> dict[str, Any]:
-        return {"hash_full": self.hash_full, **self.identity_payload()}
+        return {"graph_hash": self.graph_hash, **self.identity_payload()}
 
     def degrees(self) -> tuple[int, ...]:
         values = [0] * self.order
@@ -75,19 +75,19 @@ class Graph:
 
 
 @dataclass(frozen=True, slots=True)
-class GeneratedCorpus:
+class GeneratedGraphs:
     graphs: tuple[Graph, ...]
     attempts: int
     duplicates: int
 
 
-def generate_corpus(
+def generate_graphs(
     *,
     count: int,
     min_order: int,
     max_order: int,
     seed: int,
-) -> GeneratedCorpus:
+) -> GeneratedGraphs:
     graphs: list[Graph] = []
     hashes: set[str] = set()
     attempts = 0
@@ -104,17 +104,17 @@ def generate_corpus(
         except RuntimeError:
             continue
         graph.validate_scientific_invariants()
-        if graph.hash_full in hashes:
+        if graph.graph_hash in hashes:
             duplicates += 1
             continue
-        hashes.add(graph.hash_full)
+        hashes.add(graph.graph_hash)
         graphs.append(graph)
 
     if len(graphs) != count:
         raise RuntimeError(
             f"generated only {len(graphs)} distinct graphs after {attempts} attempts"
         )
-    return GeneratedCorpus(tuple(graphs), attempts, duplicates)
+    return GeneratedGraphs(tuple(graphs), attempts, duplicates)
 
 
 def generate_seed_graph(order: int, rng: Random) -> Graph:
@@ -216,7 +216,7 @@ def read_graphs_jsonl_gz(path: Path) -> Iterator[Graph]:
                 int(raw["order"]),
                 ((int(edge[0]), int(edge[1])) for edge in raw["edges"]),
             )
-            if raw.get("hash_full") != graph.hash_full:
+            if raw.get("graph_hash") != graph.graph_hash:
                 raise ValueError(f"graph record {line_number} has an invalid hash")
             graph.validate_scientific_invariants()
             yield graph
