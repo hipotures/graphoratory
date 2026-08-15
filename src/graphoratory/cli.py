@@ -668,10 +668,75 @@ def _render_baseline_evaluation(payload: dict[str, Any]) -> None:
 
 
 def _render_baseline_evaluations(payload: dict[str, Any]) -> None:
-    for index, result in enumerate(payload["baselines"]):
-        if index:
-            _CONSOLE.print()
-        _render_baseline_evaluation(result)
+    results = payload["baselines"]
+    if not results:
+        return
+
+    first = results[0]
+    line_label = first["line"]["id"]
+    if first["selected_latest"]:
+        line_label = f"{line_label} (latest)"
+    workspace = first["workspace"]
+    workspace_label = (
+        f"{workspace['name']} ({workspace['id']})"
+        if workspace["name"]
+        else workspace["id"]
+    )
+    _status_table(
+        [
+            ("Line", line_label),
+            ("Workspace", workspace_label),
+            ("Episodes", str(first["diagnostics"]["episodes"])),
+        ]
+    )
+
+    table = Table(box=None, padding=(0, 1))
+    table.add_column("BASELINE")
+    table.add_column("SCORE")
+    table.add_column("WIDTH", justify="right")
+    table.add_column("EXACT")
+    table.add_column("ACCEPTED", justify="right")
+    table.add_column("CALLS", justify="right")
+    table.add_column("TIME", justify="right")
+    table.add_column("EP/s", justify="right")
+    table.add_column("PROP/s", justify="right")
+    table.add_column("SCORE/s", justify="right")
+    table.add_column("RSS", justify="right")
+
+    for result in results:
+        score = result["score"]
+        fitness = score["fitness"]
+        lower = _fraction_from_payload(fitness["lower"])
+        upper = _fraction_from_payload(fitness["upper"])
+        lower_text = _format_fraction_decimal(lower)
+        upper_text = _format_fraction_decimal(upper)
+        score_text = lower_text if score["exact"] else f"[{lower_text}, {upper_text}]"
+        diagnostics = result["diagnostics"]
+        runtime = result["runtime"]
+        accepted = diagnostics["accepted_rewrites"]
+        proposals = diagnostics["proposals"]
+        wall_seconds = runtime["wall_seconds"]
+        accepted_text = (
+            f"{accepted}/{proposals} ({accepted / proposals:.1%})"
+            if proposals
+            else f"{accepted}/0 (—)"
+        )
+        proposal_rate = proposals / wall_seconds if wall_seconds else 0.0
+        score_rate = diagnostics["score_attempts"] / wall_seconds if wall_seconds else 0.0
+        table.add_row(
+            f"{result['baseline_selector']} ({result['baseline']})",
+            score_text,
+            _format_fraction_decimal(upper - lower),
+            "yes" if score["exact"] else "no",
+            accepted_text,
+            str(diagnostics["score_attempts"]),
+            f"{wall_seconds:.2f}s",
+            f"{runtime['graphs_per_second']:.1f}",
+            f"{proposal_rate:.1f}",
+            f"{score_rate:.1f}",
+            _format_bytes(runtime["peak_rss_bytes"]),
+        )
+    _CONSOLE.print(table)
 
 
 def _fraction_from_payload(payload: dict[str, int]) -> Fraction:
