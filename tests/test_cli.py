@@ -1,15 +1,23 @@
 import json
+from collections import Counter
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
 from rich.text import Text
 from typer.testing import CliRunner
 
+import graphoratory.application as application
 from graphoratory.application import create_line, create_workspace, generate_workspace_graphs
 from graphoratory.cli import app
 from graphoratory.config import AppConfig
 from graphoratory.database.core import database_path, delete_database
 from graphoratory.jsonio import read_json
+from graphoratory.science.evaluator import (
+    EvaluationDiagnostics,
+    EvaluationResult,
+    RationalInterval,
+)
 
 runner = CliRunner()
 
@@ -29,6 +37,8 @@ runner = CliRunner()
         ["line", "create", "--help"],
         ["line", "list", "--help"],
         ["line", "status", "--help"],
+        ["baseline", "--help"],
+        ["baseline", "evaluate", "--help"],
     ],
 )
 def test_help_works_everywhere(arguments: list[str]) -> None:
@@ -39,7 +49,11 @@ def test_help_works_everywhere(arguments: list[str]) -> None:
     assert "--help" in output
 
 
-def test_json_output_covers_every_command(config_file: Path) -> None:
+def test_json_output_covers_every_command(
+    config_file: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_fake_evaluator(monkeypatch)
     initialized = runner.invoke(
         app,
         ["workspace", "init", "json-test", "--json", f"config={config_file}"],
@@ -110,6 +124,21 @@ def test_json_output_covers_every_command(config_file: Path) -> None:
     assert line_status.exit_code == 0
     assert line_status_payload["line"] == line
     assert line_status_payload["selected_latest"] is True
+
+    evaluated = runner.invoke(
+        app,
+        ["baseline", "evaluate", "--json", f"config={config_file}"],
+    )
+    evaluation_payload = json.loads(evaluated.stdout)
+    assert evaluated.exit_code == 0
+    assert evaluation_payload["baseline"] == "heg_uniform_two_switch"
+    assert evaluation_payload["line"] == line
+    assert evaluation_payload["graphs"] == 2
+    assert evaluation_payload["score"]["fitness"]["lower"] == {
+        "numerator": 1,
+        "denominator": 2,
+    }
+    assert evaluation_payload["database"] == "indexed"
 
     reindexed = runner.invoke(
         app,
@@ -191,6 +220,36 @@ def test_workspace_and_line_manual_flow(config_file: Path) -> None:
     )
     assert implicit_status.exit_code == 0
     assert f"{line_id} (latest in workspace testowy)" in implicit_status.stdout
+
+
+def test_baseline_rich_and_json_outputs_share_semantics(
+    app_config: AppConfig,
+    config_file: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, "baseline-output")
+    generate_workspace_graphs(app_config, workspace.display)
+    line = create_line(app_config, workspace.display)
+    _set_active_workspace(config_file, "baseline-output")
+    _install_fake_evaluator(monkeypatch)
+
+    json_result = runner.invoke(
+        app,
+        ["baseline", "evaluate", line.display, "--json", f"config={config_file}"],
+    )
+    rich_result = runner.invoke(
+        app,
+        ["baseline", "evaluate", line.display, f"config={config_file}"],
+    )
+
+    payload = json.loads(json_result.stdout)
+    rich_text = Text.from_ansi(rich_result.stdout).plain
+    assert json_result.exit_code == rich_result.exit_code == 0
+    assert payload["baseline"] in rich_text
+    assert payload["line"]["id"] in rich_text
+    assert str(payload["graphs"]) in rich_text
+    assert "1/2" in rich_text
+    assert payload["database"] in rich_text
 
 
 def test_workspace_reindex_only_repairs_selected_workspace(
@@ -326,3 +385,28 @@ def _set_active_workspace(path: Path, value: str) -> None:
     workspace_section = lines.index("[workspace]")
     lines.insert(workspace_section + 2, f'active = "{value}"')
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _install_fake_evaluator(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeEvaluator:
+        def evaluate(self, graphs, _policy):  # type: ignore[no-untyped-def]
+            return EvaluationResult(
+                RationalInterval(Fraction(1, 2), Fraction(1, 2)),
+                EvaluationDiagnostics(
+                    episodes=len(graphs),
+                    graphs_by_order=tuple(
+                        sorted(Counter(graph.order for graph in graphs).items())
+                    ),
+                    proposals=len(graphs),
+                    no_proposals=0,
+                    accepted_rewrites=1,
+                    score_attempts=len(graphs) * 2,
+                    unique_graph_scores=len(graphs) * 2,
+                    expanded_score_attempts=0,
+                    unsafe_score_timeouts=0,
+                    component_statuses=(("EXACT", len(graphs)),),
+                ),
+                {"binary_sha256": "fixture"},
+            )
+
+    monkeypatch.setattr(application, "IndependentEvaluator", FakeEvaluator)

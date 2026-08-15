@@ -1,5 +1,7 @@
 import shutil
 import sqlite3
+from collections import Counter
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,7 @@ import graphoratory.application as application
 from graphoratory.application import (
     create_line,
     create_workspace,
+    evaluate_baseline,
     generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
@@ -29,6 +32,11 @@ from graphoratory.database.core import (
 from graphoratory.errors import ArtifactError, IdentifierError
 from graphoratory.identifiers import Identifier, ObjectType
 from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atomic
+from graphoratory.science.evaluator import (
+    EvaluationDiagnostics,
+    EvaluationResult,
+    RationalInterval,
+)
 
 
 def _workspace_path(config: AppConfig, workspace: Identifier) -> Path:
@@ -84,6 +92,7 @@ def test_multiple_workspaces_have_isolated_indexes(app_config: AppConfig) -> Non
         "graphs": app_config.graphs.workspace_graph_count,
         "lines": 1,
         "line_graphs": app_config.graphs.line_graph_count,
+        "evaluations": 0,
     }
     assert database_a != database_b
     assert projection_counts(database_a) == expected
@@ -328,6 +337,141 @@ def test_workspace_local_index_survives_project_relocation(
     delete_database(relocated_database)
     reindex_workspace(relocated_config, "portable")
     assert get_workspace_status(relocated_config, "portable").database_state == "indexed"
+
+
+def test_baseline_evaluation_uses_exact_sql_ordered_line_membership(
+    app_config: AppConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, "evaluation-membership")
+    generate_workspace_graphs(app_config, workspace.display)
+    requested = create_line(app_config, workspace.display)
+    create_line(app_config, workspace.display)
+    database = _workspace_database(app_config, workspace)
+    expected = application.line_graph_hashes(database, requested.digest)
+    observed: list[tuple[str, ...]] = []
+    _install_fake_evaluator(monkeypatch, observed)
+
+    result = evaluate_baseline(app_config, requested.display, workspace.display)
+
+    assert observed == [expected]
+    assert result.line == requested
+    assert result.graph_count == len(expected)
+
+
+def test_baseline_evaluation_does_not_scan_line_or_evaluation_directories(
+    app_config: AppConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, "evaluation-sql")
+    generate_workspace_graphs(app_config, workspace.display)
+    line = create_line(app_config, workspace.display)
+    workspace_path = _workspace_path(app_config, workspace)
+    guarded = {
+        workspace_path / "lines",
+        workspace_path / "lines" / line.display / "evaluations",
+    }
+    original_iterdir = Path.iterdir
+
+    def guarded_iterdir(path: Path):  # type: ignore[no-untyped-def]
+        if path in guarded:
+            raise AssertionError("ordinary evaluation enumerated an artifact directory")
+        return original_iterdir(path)
+
+    monkeypatch.setattr(Path, "iterdir", guarded_iterdir)
+    _install_fake_evaluator(monkeypatch)
+
+    result = evaluate_baseline(app_config, line.display, workspace.display)
+
+    assert result.database_state == "indexed"
+
+
+def test_reindex_reconstructs_evaluation_without_touching_other_workspace(
+    app_config: AppConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace_a = create_workspace(app_config, "evaluation-a")
+    workspace_b = create_workspace(app_config, "evaluation-b")
+    for workspace in (workspace_a, workspace_b):
+        generate_workspace_graphs(app_config, workspace.display)
+    line_a = create_line(app_config, workspace_a.display)
+    line_b = create_line(app_config, workspace_b.display)
+    _install_fake_evaluator(monkeypatch)
+    score_a = evaluate_baseline(app_config, line_a.display, workspace_a.display).score
+    evaluate_baseline(app_config, line_b.display, workspace_b.display)
+    database_a = _workspace_database(app_config, workspace_a)
+    database_b = _workspace_database(app_config, workspace_b)
+    before_b = database_b.read_bytes()
+
+    delete_database(database_a)
+    reindex_workspace(app_config, workspace_a.display)
+
+    assert projection_counts(database_a)["evaluations"] == 1  # type: ignore[index]
+    assert database_b.read_bytes() == before_b
+    with sqlite3.connect(database_a) as connection:
+        row = connection.execute(
+            "SELECT score_lower_numerator, score_lower_denominator FROM evaluations"
+        ).fetchone()
+    lower = score_a["fitness"]["lower"]  # type: ignore[index]
+    assert row == (str(lower["numerator"]), str(lower["denominator"]))  # type: ignore[index]
+    assert not (app_config.project_root / DATABASE_NAME).exists()
+
+
+def test_published_evaluation_survives_sqlite_indexing_failure(
+    app_config: AppConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = create_workspace(app_config, "evaluation-index-failure")
+    generate_workspace_graphs(app_config, workspace.display)
+    line = create_line(app_config, workspace.display)
+    _install_fake_evaluator(monkeypatch)
+
+    def fail_index(*_args: object, **_kwargs: object) -> None:
+        raise sqlite3.OperationalError("injected indexing failure")
+
+    monkeypatch.setattr(application, "index_evaluation", fail_index)
+    with pytest.raises(ArtifactError, match="was published.*reindex"):
+        evaluate_baseline(app_config, line.display, workspace.display)
+
+    evaluation_directory = (
+        _workspace_path(app_config, workspace) / "lines" / line.display / "evaluations"
+    )
+    artifacts = list(evaluation_directory.iterdir())
+    assert len(artifacts) == 1
+    assert read_json(artifacts[0])["artifact_type"] == "baseline_evaluation"
+    assert projection_counts(_workspace_database(app_config, workspace))["evaluations"] == 0  # type: ignore[index]
+    reindex_workspace(app_config, workspace.display)
+    assert projection_counts(_workspace_database(app_config, workspace))["evaluations"] == 1  # type: ignore[index]
+
+
+def _install_fake_evaluator(
+    monkeypatch: pytest.MonkeyPatch,
+    observed: list[tuple[str, ...]] | None = None,
+) -> None:
+    class FakeEvaluator:
+        def evaluate(self, graphs, _policy):  # type: ignore[no-untyped-def]
+            if observed is not None:
+                observed.append(tuple(graph.graph_hash for graph in graphs))
+            return EvaluationResult(
+                RationalInterval(Fraction(1, 2), Fraction(1, 2)),
+                EvaluationDiagnostics(
+                    episodes=len(graphs),
+                    graphs_by_order=tuple(
+                        sorted(Counter(graph.order for graph in graphs).items())
+                    ),
+                    proposals=len(graphs),
+                    no_proposals=0,
+                    accepted_rewrites=1,
+                    score_attempts=len(graphs) * 2,
+                    unique_graph_scores=len(graphs) * 2,
+                    expanded_score_attempts=0,
+                    unsafe_score_timeouts=0,
+                    component_statuses=(("EXACT", len(graphs)),),
+                ),
+                {"binary_sha256": "fixture"},
+            )
+
+    monkeypatch.setattr(application, "IndependentEvaluator", FakeEvaluator)
 
 
 def test_graph_generation_does_not_overwrite_existing_graphs(app_config: AppConfig) -> None:

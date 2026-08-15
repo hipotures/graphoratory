@@ -96,6 +96,31 @@ line_graphs = Table(
     ),
 )
 
+evaluations = Table(
+    "evaluations",
+    metadata,
+    Column("evaluation_hash", String(64), primary_key=True),
+    Column(
+        "workspace_hash",
+        String(64),
+        ForeignKey("workspaces.workspace_hash", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column(
+        "line_hash",
+        String(64),
+        ForeignKey("lines.line_hash", ondelete="CASCADE"),
+        nullable=False,
+    ),
+    Column("created_at", String, nullable=False),
+    Column("baseline_name", String, nullable=False),
+    Column("graph_count", Integer, nullable=False),
+    Column("score_lower_numerator", Text, nullable=False),
+    Column("score_lower_denominator", Text, nullable=False),
+    Column("score_upper_numerator", Text, nullable=False),
+    Column("score_upper_denominator", Text, nullable=False),
+)
+
 Index("ix_workspaces_workspace_short", workspaces.c.workspace_short)
 Index("ix_graphs_graph_short", graphs.c.graph_short)
 Index("ix_lines_line_short", lines.c.line_short)
@@ -104,4 +129,10 @@ Index(
     lines.c.workspace_hash,
     lines.c.created_at,
     lines.c.line_hash,
+)
+Index(
+    "ix_evaluations_line_created_hash",
+    evaluations.c.line_hash,
+    evaluations.c.created_at,
+    evaluations.c.evaluation_hash,
 )

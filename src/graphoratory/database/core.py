@@ -14,9 +14,11 @@ from graphoratory.artifacts import (
     DATABASE_NAME,
     GRAPH_FILE,
     WorkspaceArtifact,
+    scan_evaluation_artifacts,
     scan_line_artifacts,
 )
 from graphoratory.database.schema import (
+    evaluations,
     graph_corpora,
     graphs,
     line_graphs,
@@ -120,6 +122,26 @@ def index_line(connection: Connection, manifest: dict[str, Any]) -> None:
     )
 
 
+def index_evaluation(connection: Connection, manifest: dict[str, Any]) -> None:
+    fitness = manifest["score"]["fitness"]
+    lower = fitness["lower"]
+    upper = fitness["upper"]
+    connection.execute(
+        evaluations.insert().values(
+            evaluation_hash=manifest["evaluation_hash"],
+            workspace_hash=manifest["workspace_hash"],
+            line_hash=manifest["line_hash"],
+            created_at=manifest["created_at"],
+            baseline_name=manifest["baseline"]["name"],
+            graph_count=manifest["graph_count"],
+            score_lower_numerator=str(lower["numerator"]),
+            score_lower_denominator=str(lower["denominator"]),
+            score_upper_numerator=str(upper["numerator"]),
+            score_upper_denominator=str(upper["denominator"]),
+        )
+    )
+
+
 def rebuild_database(workspace: WorkspaceArtifact) -> None:
     """Rebuild exactly one workspace-local derived SQLite index."""
     destination = database_path(workspace.path)
@@ -136,6 +158,7 @@ def rebuild_database(workspace: WorkspaceArtifact) -> None:
                 )
                 _index_graphs_from_artifacts(connection, workspace)
                 _index_lines_from_artifacts(connection, workspace)
+                _index_evaluations_from_artifacts(connection, workspace)
             with engine.connect() as connection:
                 result = connection.execute(text("PRAGMA integrity_check")).scalar_one()
                 if result != "ok":
@@ -184,6 +207,7 @@ def projection_counts(path: Path) -> dict[str, int] | None:
                 "graphs",
                 "lines",
                 "line_graphs",
+                "evaluations",
             ):
                 row = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
                 if row is None:
@@ -221,6 +245,14 @@ def _index_lines_from_artifacts(
 ) -> None:
     for line in scan_line_artifacts(workspace):
         index_line(connection, read_json(line.path / "manifest.json"))
+
+
+def _index_evaluations_from_artifacts(
+    connection: Connection,
+    workspace: WorkspaceArtifact,
+) -> None:
+    for evaluation in scan_evaluation_artifacts(workspace):
+        index_evaluation(connection, read_json(evaluation.path))
 
 
 def _validate_graphs_manifest(

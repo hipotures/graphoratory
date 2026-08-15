@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import shutil
 import tempfile
@@ -16,6 +17,7 @@ from graphoratory.jsonio import canonical_json_bytes, read_json
 WORKSPACE_MANIFEST = "manifest.json"
 DATABASE_NAME = "index.sqlite3"
 GRAPH_FILE = "graphs.jsonl.gz"
+EVALUATIONS_DIRECTORY = "evaluations"
 _WORKSPACE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
 _WORKSPACE_TYPED_NAME = re.compile(r"^ws-(?:[0-9a-f]{8}|[0-9a-f]{64})$")
 
@@ -34,6 +36,15 @@ class LineArtifact:
     workspace: Identifier
     created_at: datetime
     graph_count: int
+    path: Path
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationArtifact:
+    evaluation_hash: str
+    workspace_hash: str
+    line_hash: str
+    created_at: datetime
     path: Path
 
 
@@ -208,6 +219,56 @@ def scan_line_artifacts(workspace: WorkspaceArtifact) -> list[LineArtifact]:
     return sorted(
         artifacts,
         key=lambda line: (line.created_at, line.identifier.digest),
+        reverse=True,
+    )
+
+
+def evaluation_manifest_hash(manifest: dict[str, Any]) -> str:
+    identity = dict(manifest)
+    identity.pop("evaluation_hash", None)
+    return hashlib.sha256(canonical_json_bytes(identity)).hexdigest()
+
+
+def scan_evaluation_artifacts(workspace: WorkspaceArtifact) -> list[EvaluationArtifact]:
+    """Enumerate completed evaluations only while rebuilding a workspace index."""
+    artifacts: list[EvaluationArtifact] = []
+    for line in scan_line_artifacts(workspace):
+        directory = line.path / EVALUATIONS_DIRECTORY
+        if not directory.exists():
+            continue
+        for path in sorted(directory.iterdir()):
+            if not path.is_file() or path.suffix != ".json":
+                continue
+            try:
+                manifest = read_json(path)
+                evaluation_hash = _manifest_string(manifest, "evaluation_hash")
+                workspace_hash = _manifest_string(manifest, "workspace_hash")
+                line_hash = _manifest_string(manifest, "line_hash")
+                if manifest.get("artifact_type") != "baseline_evaluation":
+                    raise ValueError("artifact_type must be baseline_evaluation")
+                if evaluation_hash != evaluation_manifest_hash(manifest):
+                    raise ValueError("evaluation hash does not match its payload")
+                if path.name != f"{evaluation_hash}.json":
+                    raise ValueError("evaluation filename does not match its hash")
+                if workspace_hash != workspace.identifier.digest:
+                    raise ValueError("evaluation belongs to another workspace")
+                if line_hash != line.identifier.digest:
+                    raise ValueError("evaluation belongs to another line")
+                created_at = parse_utc_timestamp(_manifest_string(manifest, "created_at"))
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise ArtifactError(f"invalid evaluation artifact: {path}") from exc
+            artifacts.append(
+                EvaluationArtifact(
+                    evaluation_hash,
+                    workspace_hash,
+                    line_hash,
+                    created_at,
+                    path,
+                )
+            )
+    return sorted(
+        artifacts,
+        key=lambda artifact: (artifact.created_at, artifact.evaluation_hash),
         reverse=True,
     )
 

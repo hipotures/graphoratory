@@ -12,3 +12,15 @@ class IdentifierError(GraphoratoryError):
 
 class ArtifactError(GraphoratoryError):
     """An authoritative artifact is missing or invalid."""
+
+
+class InvalidGraphError(GraphoratoryError):
+    """A graph violates the evaluator's scientific input contract."""
+
+
+class BaselineFailure(GraphoratoryError):
+    """The frozen baseline failed before producing a valid proposal."""
+
+
+class EvaluationFailure(GraphoratoryError):
+    """The independent evaluator could not produce sound score evidence."""

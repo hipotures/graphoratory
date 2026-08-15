@@ -5,8 +5,8 @@ current code, not future milestones.
 
 ## 1. Implemented functionality
 
-Graphoratory currently provides a Typer-based `graphlab` CLI with three command groups:
-`workspace`, `graph`, and `line`. Typer owns command parsing, positional arguments, command
+Graphoratory currently provides a Typer-based `graphlab` CLI with four command groups:
+`workspace`, `graph`, `line`, and `baseline`. Typer owns command parsing, positional arguments, command
 groups, and `--help`. Trailing `key=value` tokens are parsed only after Typer has selected a
 command.
 
@@ -25,10 +25,12 @@ The implemented operations are:
 - show read-only status for an explicit line or the latest line in the selected workspace;
 - resolve lowercase typed workspace, line, and graph IDs;
 - index workspace, graph, line, and line-membership data in SQLite;
+- evaluate the frozen HEG baseline on one line's exact fixed graph membership;
+- persist and index compact immutable baseline-evaluation evidence;
 - keep filesystem manifests and graph data authoritative;
 - apply strict `key=value` configuration overrides and reject unknown keys.
 
-Policy generation, policy evaluation, policy repair, policy mutation, baselines, branching,
+Policy generation, custom-policy evaluation, policy repair, policy mutation, branching,
 `line next`, `line run`, scheduling, counterexample search, Codex App Server integration,
 and dashboards are not implemented in this milestone.
 
@@ -128,6 +130,7 @@ graphlab graph generate [key=value ...]
 graphlab line create [key=value ...]
 graphlab line list [key=value ...]
 graphlab line status [LINE] [key=value ...]
+graphlab baseline evaluate [LINE] [key=value ...]
 ```
 
 The implemented line command tree is:

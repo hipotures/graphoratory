@@ -10,6 +10,7 @@ SRC = Path(__file__).parents[1] / "src" / "graphoratory"
 # project-level exception; deep line enumeration is reindex-only; rglob is a disk-usage metric.
 _ALLOWED_ENUMERATION = {
     ("application.py", "_directory_size", "rglob"),
+    ("artifacts.py", "scan_evaluation_artifacts", "iterdir"),
     ("artifacts.py", "scan_workspace_directories", "iterdir"),
     ("artifacts.py", "scan_line_artifacts", "iterdir"),
 }
@@ -65,3 +66,11 @@ def test_line_artifact_scan_is_reindex_only() -> None:
 
     assert "scan_line_artifacts" not in application
     assert "for line in scan_line_artifacts(workspace):" in core
+
+
+def test_evaluation_artifact_scan_is_reindex_only() -> None:
+    application = (SRC / "application.py").read_text(encoding="utf-8")
+    core = (SRC / "database" / "core.py").read_text(encoding="utf-8")
+
+    assert "scan_evaluation_artifacts" not in application
+    assert "for evaluation in scan_evaluation_artifacts(workspace):" in core

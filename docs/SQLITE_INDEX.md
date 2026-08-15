@@ -21,6 +21,10 @@ Immutable filesystem artifacts are authoritative. SQLite is derived and may alwa
 
 SQLite stores compact identity, ownership, ordering, graph metadata, and line membership needed to locate authoritative data. Large scientific payloads remain in files.
 
+Completed baseline evaluations are immutable files below their exact line directory.
+SQLite projects their identity, ownership, baseline, graph count, and exact rational score
+endpoints in the workspace-local `evaluations` table.
+
 ## Normal lookup
 
 After a workspace is selected, ordinary lookup inside that workspace is SQL-first:
@@ -51,6 +55,10 @@ graphlab workspace reindex [WORKSPACE]
 rebuilds **only the selected workspace's** `index.sqlite3`.
 
 Reindex is the explicit operation allowed to enumerate that workspace's graph and line artifacts. It validates them, builds a new temporary SQLite database, runs SQLite integrity and foreign-key checks, and atomically replaces the selected workspace index.
+
+This boundary also permits enumerating completed evaluation artifacts under the already
+identified line artifacts. Ordinary baseline evaluation does not enumerate those
+directories.
 
 Reindexing workspace A must not read, rebuild, delete, or modify workspace B's SQLite database.
 

@@ -490,6 +490,13 @@ They will be implemented as an independent operation after the graph corpus and 
 
 Baseline execution must remain directly runnable rather than hidden inside a larger pipeline.
 
+The first implemented scientific operation is `graphlab baseline evaluate [LINE]`. It runs
+the frozen HEG uniform-two-switch baseline over exactly one line's ordered graph membership.
+An independent evaluator owns graph validation, conservative power-of-two cycle evidence,
+mixed-radix energy, strict interval improvement, and exact-rational order-balanced fitness.
+Completed results are immutable line artifacts and are projected into the selected
+workspace's rebuildable SQLite index.
+
 ---
 
 # 18. Resource observability

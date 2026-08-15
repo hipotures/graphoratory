@@ -43,6 +43,7 @@ dependencies = [
     { name = "networkx" },
     { name = "rich" },
     { name = "sqlalchemy" },
+    { name = "structural-graph-lab" },
     { name = "typer" },
 ]
 
@@ -60,6 +61,7 @@ requires-dist = [
     { name = "networkx", specifier = ">=3.4,<4" },
     { name = "rich", specifier = ">=13.9,<15" },
     { name = "sqlalchemy", specifier = ">=2.0,<3" },
+    { name = "structural-graph-lab", git = "https://github.com/hipotures/heg?rev=27cbec9c2307b6ea5f936f858821d11d808b68f3" },
     { name = "typer", specifier = ">=0.16,<1" },
 ]
 
@@ -348,6 +350,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ed/06/543dab8ef62d4e9fb96fb31a30c2b8b14a8763bccf48d428294d6b3041c0/sqlalchemy-2.0.52-cp312-cp312-win_amd64.whl", hash = "sha256:2d5e53e36e37129fe0be8b9d08b6e4052c10a963ee6cda56c8c10dcc194b99ca", size = 2157344, upload-time = "2026-08-11T21:14:52.453Z" },
     { url = "https://files.pythonhosted.org/packages/b3/3f/3582293d1e185e71d19d7c731c3e2ee20ba21981c4a1115c0806c1f62120/sqlalchemy-2.0.52-py3-none-any.whl", hash = "sha256:3b81b8363a919ce53453591cdb93702e6bd54ade6c4fa2f468fc053baee5ed89", size = 1950700, upload-time = "2026-08-11T20:47:21.603Z" },
 ]
+
+[[package]]
+name = "structural-graph-lab"
+version = "0.2.0"
+source = { git = "https://github.com/hipotures/heg?rev=27cbec9c2307b6ea5f936f858821d11d808b68f3#27cbec9c2307b6ea5f936f858821d11d808b68f3" }
 
 [[package]]
 name = "typer"

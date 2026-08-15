@@ -14,9 +14,11 @@ from typer._click.exceptions import ClickException
 from typer.core import TyperGroup
 
 from graphoratory.application import (
+    BaselineEvaluationResult,
     WorkspaceStatus,
     create_line,
     create_workspace,
+    evaluate_baseline,
     generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
@@ -84,9 +86,14 @@ line_app = typer.Typer(
     help="Create and inspect independent search lines.",
     no_args_is_help=True,
 )
+baseline_app = typer.Typer(
+    help="Evaluate the frozen scientific baseline.",
+    no_args_is_help=True,
+)
 app.add_typer(workspace_app, name="workspace")
 app.add_typer(graph_app, name="graph")
 app.add_typer(line_app, name="line")
+app.add_typer(baseline_app, name="baseline")
 
 _CONSOLE = Console()
 _ERROR_CONSOLE = Console(stderr=True)
@@ -327,6 +334,30 @@ def line_status(
     _run(execute, json_output)
 
 
+@baseline_app.command("evaluate")
+def baseline_evaluate(
+    line: Annotated[
+        str | None,
+        typer.Argument(help="Lowercase typed line ID.", metavar="LINE"),
+    ] = None,
+    json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
+    overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
+) -> None:
+    """Evaluate the frozen baseline on one line's fixed graph membership."""
+
+    def execute() -> None:
+        target, command_overrides = _positional_or_assignment(line, overrides)
+        config, operational = _command_config(command_overrides, {"line", "workspace"})
+        target = _explicit_target(target, operational.pop("line", None), "line")
+        workspace = operational.pop("workspace", None)
+        _reject_operational(operational)
+        result = evaluate_baseline(config, target, workspace)
+        payload = _baseline_evaluation_payload(result)
+        _emit(payload, json_output, _render_baseline_evaluation)
+
+    _run(execute, json_output)
+
+
 def main() -> None:
     app(prog_name="graphlab")
 
@@ -438,6 +469,30 @@ def _workspace_status_payload(status: WorkspaceStatus) -> dict[str, Any]:
     }
 
 
+def _baseline_evaluation_payload(result: BaselineEvaluationResult) -> dict[str, Any]:
+    return {
+        "baseline": result.baseline,
+        "line": _identifier_payload(result.line),
+        "workspace": {
+            **_identifier_payload(result.workspace),
+            "name": result.workspace_name,
+        },
+        "graphs": result.graph_count,
+        "score": result.score,
+        "diagnostics": result.diagnostics,
+        "runtime": {
+            "wall_seconds": result.wall_seconds,
+            "graphs_per_second": result.graphs_per_second,
+            "peak_rss_bytes": result.peak_rss_bytes,
+        },
+        "evaluation_artifact": {
+            "hash": result.evaluation_hash,
+        },
+        "database": result.database_state,
+        "selected_latest": result.selected_latest,
+    }
+
+
 def _emit(
     payload: dict[str, Any],
     json_output: bool,
@@ -529,6 +584,45 @@ def _render_line_status(payload: dict[str, Any]) -> None:
             ("Graphs", str(payload["graphs"])),
             ("Created", payload["created_at"]),
             ("Phase", payload["phase"]),
+            ("Database", payload["database"]),
+        ]
+    )
+
+
+def _render_baseline_evaluation(payload: dict[str, Any]) -> None:
+    score = payload["score"]
+    fitness = score["fitness"]
+    lower = fitness["lower"]
+    upper = fitness["upper"]
+    lower_text = f"{lower['numerator']}/{lower['denominator']}"
+    upper_text = f"{upper['numerator']}/{upper['denominator']}"
+    score_text = lower_text if score["exact"] else f"[{lower_text}, {upper_text}]"
+    diagnostics = payload["diagnostics"]
+    runtime = payload["runtime"]
+    order_counts = ", ".join(
+        f"{order}×{count}"
+        for order, count in sorted(
+            diagnostics["graphs_by_order"].items(),
+            key=lambda item: int(item[0]),
+        )
+    )
+    line_label = payload["line"]["id"]
+    if payload["selected_latest"]:
+        line_label = f"{line_label} (latest)"
+    _status_table(
+        [
+            ("Baseline", payload["baseline"]),
+            ("Line", line_label),
+            ("Workspace", payload["workspace"]["id"]),
+            ("Graphs", str(payload["graphs"])),
+            ("Orders", order_counts),
+            ("Score", score_text),
+            ("Accepted", str(diagnostics["accepted_rewrites"])),
+            ("Score calls", str(diagnostics["score_attempts"])),
+            ("Wall time", f"{runtime['wall_seconds']:.6f} s"),
+            ("Throughput", f"{runtime['graphs_per_second']:.3f} graphs/s"),
+            ("Peak RSS", _format_bytes(runtime["peak_rss_bytes"])),
+            ("Artifact", payload["evaluation_artifact"]["hash"][:12]),
             ("Database", payload["database"]),
         ]
     )

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import resource
+import sys
+import time
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -10,10 +14,12 @@ from typing import Any
 
 from graphoratory.artifacts import (
     DATABASE_NAME,
+    EVALUATIONS_DIRECTORY,
     GRAPH_FILE,
     WorkspaceArtifact,
     discard_directory,
     ensure_workspace_alias,
+    evaluation_manifest_hash,
     parse_utc_timestamp,
     publish_directory,
     resolve_workspace,
@@ -24,6 +30,7 @@ from graphoratory.artifacts import (
 from graphoratory.config import AppConfig
 from graphoratory.database.core import (
     database_path,
+    index_evaluation,
     index_graphs,
     index_line,
     index_workspace,
@@ -39,9 +46,16 @@ from graphoratory.database.queries import (
 from graphoratory.database.queries import list_lines as query_lines
 from graphoratory.database.queries import resolve_line as query_line
 from graphoratory.errors import ArtifactError, GraphoratoryError
-from graphoratory.graphs import generate_graphs, write_graphs_jsonl_gz
+from graphoratory.graphs import (
+    Graph,
+    generate_graphs,
+    read_graphs_jsonl_gz,
+    write_graphs_jsonl_gz,
+)
 from graphoratory.identifiers import Identifier, ObjectType
 from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atomic
+from graphoratory.science.baseline import UniformTwoSwitchBaseline
+from graphoratory.science.evaluator import IndependentEvaluator, score_payload
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +126,23 @@ class LineListResult:
     workspace: Identifier
     workspace_name: str | None
     lines: tuple[LineSummary, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class BaselineEvaluationResult:
+    evaluation_hash: str
+    baseline: str
+    line: Identifier
+    workspace: Identifier
+    workspace_name: str | None
+    graph_count: int
+    score: dict[str, object]
+    diagnostics: dict[str, object]
+    wall_seconds: float
+    graphs_per_second: float
+    peak_rss_bytes: int
+    database_state: str
+    selected_latest: bool
 
 
 def create_workspace(config: AppConfig, name: str) -> Identifier:
@@ -433,6 +464,145 @@ def list_lines(
     )
 
 
+def evaluate_baseline(
+    config: AppConfig,
+    line_value: str | None = None,
+    workspace_value: str | None = None,
+) -> BaselineEvaluationResult:
+    selection = resolve_line_for_command(config, line_value, workspace_value)
+    database = _workspace_database(selection.workspace)
+    graph_hashes = line_graph_hashes(database, selection.identifier.digest)
+    if len(graph_hashes) != selection.indexed_graph_count:
+        raise ArtifactError("workspace index is missing or stale; run `graphlab workspace reindex`")
+    line_manifest_path = selection.line_path / "manifest.json"
+    try:
+        line_manifest = read_json(line_manifest_path)
+        artifact_graph_hashes = line_manifest["graph_hashes"]
+        if not isinstance(artifact_graph_hashes, list) or any(
+            not isinstance(graph_hash, str) for graph_hash in artifact_graph_hashes
+        ):
+            raise TypeError("graph_hashes must be a list of strings")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ArtifactError(f"invalid line artifact: {line_manifest_path}") from exc
+    if (
+        line_manifest.get("line_hash") != selection.identifier.digest
+        or line_manifest.get("workspace_hash") != selection.workspace.identifier.digest
+        or tuple(artifact_graph_hashes) != graph_hashes
+    ):
+        raise ArtifactError(
+            "line artifact and workspace index disagree; run `graphlab workspace reindex`"
+        )
+    graphs = _line_graphs(selection.workspace, graph_hashes)
+    baseline = UniformTwoSwitchBaseline()
+    started = time.perf_counter()
+    result = IndependentEvaluator().evaluate(graphs, baseline)
+    wall_seconds = time.perf_counter() - started
+    created_at = _timestamp()
+    manifest: dict[str, Any] = {
+        "artifact_type": "baseline_evaluation",
+        "workspace_hash": selection.workspace.identifier.digest,
+        "line_hash": selection.identifier.digest,
+        "created_at": created_at,
+        "baseline": {
+            **baseline.provenance(),
+            "graphoratory_source_sha256": _source_sha256(
+                Path(__file__).parent / "science" / "baseline.py"
+            ),
+        },
+        "evaluator": {
+            "forbidden_lengths": "powers_of_two_from_4_through_graph_order",
+            "component_weight": "max(1, 64 // forbidden_length)",
+            "energy": "mixed_radix_total_witnesses_weighted_penalty_edge_count",
+            "strict_improvement": "candidate_upper_below_incumbent_lower",
+            "aggregation": "best_so_far_episode_auc_order_balanced_mean",
+            "graphoratory_source_sha256": _source_sha256(
+                Path(__file__).parent / "science" / "evaluator.py"
+            ),
+            "worker": result.worker,
+        },
+        "score": score_payload(result.score),
+        "diagnostics": result.diagnostics.payload(),
+        "graph_count": len(graphs),
+        "resources": {
+            "wall_seconds": wall_seconds,
+            "graphs_per_second": len(graphs) / wall_seconds if wall_seconds else 0.0,
+            "peak_rss_bytes": _peak_rss_bytes(),
+        },
+    }
+    manifest["evaluation_hash"] = evaluation_manifest_hash(manifest)
+    evaluation_hash = str(manifest["evaluation_hash"])
+    directory = selection.line_path / EVALUATIONS_DIRECTORY
+    directory.mkdir(parents=True, exist_ok=True)
+    artifact_path = directory / f"{evaluation_hash}.json"
+    if artifact_path.exists():
+        raise ArtifactError(f"evaluation artifact already exists: {artifact_path}")
+    write_json_atomic(artifact_path, manifest)
+    try:
+        engine = make_engine(database)
+        try:
+            with engine.begin() as connection:
+                index_evaluation(connection, manifest)
+        finally:
+            engine.dispose()
+    except Exception as exc:
+        raise ArtifactError(
+            f"evaluation {evaluation_hash} was published, but SQLite indexing failed; "
+            f"run `graphlab workspace reindex {selection.workspace.identifier.display}`"
+        ) from exc
+    resources = manifest["resources"]
+    assert isinstance(resources, dict)
+    return BaselineEvaluationResult(
+        evaluation_hash=evaluation_hash,
+        baseline=baseline.name,
+        line=selection.identifier,
+        workspace=selection.workspace.identifier,
+        workspace_name=selection.workspace.name,
+        graph_count=len(graphs),
+        score=manifest["score"],
+        diagnostics=manifest["diagnostics"],
+        wall_seconds=wall_seconds,
+        graphs_per_second=float(resources["graphs_per_second"]),
+        peak_rss_bytes=int(resources["peak_rss_bytes"]),
+        database_state="indexed",
+        selected_latest=selection.selected_latest,
+    )
+
+
+def _line_graphs(
+    workspace: WorkspaceArtifact,
+    selected_hashes: tuple[str, ...],
+) -> tuple[Graph, ...]:
+    graphs_path = workspace.path / "graphs"
+    manifest_path = graphs_path / "manifest.json"
+    graph_path = graphs_path / GRAPH_FILE
+    if not manifest_path.is_file() or not graph_path.is_file():
+        raise ArtifactError(
+            "workspace graph artifact is missing or incomplete; run `graphlab workspace reindex`"
+        )
+    manifest = read_json(manifest_path)
+    if manifest.get("workspace_hash") != workspace.identifier.digest:
+        raise ArtifactError("workspace graph artifact belongs to another workspace")
+    try:
+        workspace_graphs = tuple(read_graphs_jsonl_gz(graph_path))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise ArtifactError(f"invalid workspace graph artifact: {graph_path}") from exc
+    file_hashes = tuple(graph.graph_hash for graph in workspace_graphs)
+    if list(file_hashes) != manifest.get("graph_hashes"):
+        raise ArtifactError(
+            "workspace graph artifact and manifest disagree; run `graphlab workspace reindex`"
+        )
+    by_hash = {graph.graph_hash: graph for graph in workspace_graphs}
+    if len(by_hash) != len(workspace_graphs):
+        raise ArtifactError("workspace graph artifact contains duplicate graph hashes")
+    missing = [graph_hash for graph_hash in selected_hashes if graph_hash not in by_hash]
+    if missing:
+        raise ArtifactError(
+            "line graph membership is absent from the workspace graph artifact; "
+            "run `graphlab workspace reindex`"
+        )
+    return tuple(by_hash[graph_hash] for graph_hash in selected_hashes)
+
+
 def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:
     return {
         "generator": config.graphs.generator,
@@ -514,3 +684,12 @@ def _timestamp() -> str:
 
 def _directory_size(path: Path) -> int:
     return sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+
+
+def _peak_rss_bytes() -> int:
+    value = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
+    return value if sys.platform == "darwin" else value * 1024
+
+
+def _source_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
