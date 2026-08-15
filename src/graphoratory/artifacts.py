@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from graphoratory.errors import ArtifactError, IdentifierError
-from graphoratory.identifiers import Identifier, ObjectType
+from graphoratory.identifiers import Identifier, ObjectType, parse_typed
 from graphoratory.jsonio import canonical_json_bytes, read_json
 
 WORKSPACE_MANIFEST = "manifest.json"
@@ -38,12 +38,54 @@ class LineArtifact:
 
 
 def scan_workspace_directories(root: Path) -> Iterator[Path]:
-    """Enumerate workspace artifacts for explicit reindex and recovery operations."""
+    """Enumerate only top-level workspace artifacts.
+
+    Project-level workspace listing/recovery may enumerate this shallow directory. Once a
+    workspace is selected, ordinary entity lookup must use its SQLite index.
+    """
     if not root.exists():
         return
     for path in sorted(root.iterdir()):
-        if path.is_dir() and path.name.startswith("ws-") and (path / WORKSPACE_MANIFEST).is_file():
+        if (
+            path.is_dir()
+            and path.name.startswith("ws-")
+            and (path / WORKSPACE_MANIFEST).is_file()
+        ):
             yield path
+
+
+def workspace_artifacts(root: Path) -> list[WorkspaceArtifact]:
+    return [workspace_artifact(path) for path in scan_workspace_directories(root)]
+
+
+def resolve_workspace(root: Path, value: str) -> WorkspaceArtifact:
+    """Resolve one workspace without scanning all workspace manifests."""
+    typed = value.startswith(f"{ObjectType.WORKSPACE.value}-")
+    if typed:
+        _, hash_part = parse_typed(value, ObjectType.WORKSPACE)
+        path = root / f"ws-{hash_part[:8]}"
+    else:
+        validate_workspace_name(value)
+        alias = root / value
+        if not alias.is_symlink():
+            raise ArtifactError(f"workspace not found: {value}")
+        target = alias.readlink()
+        if target.is_absolute() or len(target.parts) != 1 or not target.name.startswith("ws-"):
+            raise ArtifactError(f"invalid workspace alias: {alias}")
+        path = root / target
+
+    if not path.is_dir() or not (path / WORKSPACE_MANIFEST).is_file():
+        raise ArtifactError(f"workspace not found: {value}")
+
+    workspace = workspace_artifact(path)
+    if workspace.identifier.display != path.name:
+        raise ArtifactError(f"workspace directory does not match manifest: {path}")
+    if typed:
+        if not workspace.identifier.digest.startswith(hash_part):
+            raise ArtifactError(f"workspace not found: {value}")
+    elif workspace.name != value:
+        raise ArtifactError(f"workspace alias does not match manifest: {value}")
+    return workspace
 
 
 def validate_workspace_name(value: str) -> None:
@@ -103,7 +145,7 @@ def workspace_artifact(path: Path) -> WorkspaceArtifact:
 
 
 def scan_line_artifacts(workspace: WorkspaceArtifact) -> list[LineArtifact]:
-    """Enumerate line artifacts for explicit reindex and recovery operations."""
+    """Enumerate line artifacts only for explicit reindex/recovery operations."""
     lines_path = workspace.path / "lines"
     if not lines_path.exists():
         return []

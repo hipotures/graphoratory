@@ -75,10 +75,10 @@ A workspace is the top-level unit of one research environment.
 Conceptually:
 
 ```text
-index.sqlite3
 workspaces/
 └── ws-xxxxxxxx/
     ├── manifest.json
+    ├── index.sqlite3
     ├── graphs/
     └── lines/
 ```
@@ -338,13 +338,7 @@ If the cache is wrong or incomplete, it can be rebuilt.
 
 # 12. SQLite
 
-Graphoratory has exactly one project-wide SQLite database:
-
-```text
-<project_root>/index.sqlite3
-```
-
-SQLite is present from the beginning. It indexes every workspace in the project.
+SQLite is present from the beginning.
 
 Its functions are:
 
@@ -361,22 +355,8 @@ Required property:
 ```text
 delete SQLite
 → run workspace reindex
-→ rebuild the complete project database from all workspace artifacts
+→ rebuild database from artifacts
 ```
-
-Ordinary workspace, line, graph, relation, list, and latest-line lookups query SQLite.
-SQLite identifies the entity and its workspace; the application then derives the one exact
-project-relative artifact path and reads that file only when its authoritative payload is
-needed. Ordinary commands never silently fall back to enumerating manifests.
-
-Full filesystem enumeration is reserved for explicit reindex, recovery, and integrity
-operations. A missing, unreadable, or specifically stale index produces a diagnostic telling
-the user to run `graphlab workspace reindex`.
-
-SQLite stores semantic hashes, short hashes, ownership, ordering, compact graph-generation
-provenance, counts, and line membership. It does not store graph edge payloads or
-machine-specific absolute paths. Graph payloads remain in the one known
-`graphs/graphs.jsonl.gz` artifact for the resolved workspace.
 
 Schema changes use migrations.
 

@@ -9,14 +9,7 @@ from pathlib import Path
 from graphoratory.errors import ArtifactError, IdentifierError
 from graphoratory.identifiers import Identifier, ObjectType, parse_typed
 
-_REINDEX = "project index is missing or stale; run `graphlab workspace reindex`"
-
-
-@dataclass(frozen=True, slots=True)
-class WorkspaceRow:
-    identifier: Identifier
-    name: str | None
-    created_at: str
+_REINDEX = "workspace index is missing or stale; run `graphlab workspace reindex`"
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,52 +28,6 @@ class WorkspaceProjection:
     configuration_json: str | None
 
 
-def resolve_workspace(path: Path, value: str) -> WorkspaceRow:
-    with _connection(path) as connection:
-        if value.startswith(f"{ObjectType.WORKSPACE.value}-"):
-            _, hash_part = parse_typed(value, ObjectType.WORKSPACE)
-            rows = connection.execute(
-                _WORKSPACE_SELECT
-                + " WHERE workspace_hash LIKE ? ORDER BY workspace_hash LIMIT 2",
-                (f"{hash_part}%",),
-            ).fetchall()
-            if not rows:
-                raise IdentifierError(
-                    f"{value} does not resolve in the project index; {_REINDEX}"
-                )
-            if len(rows) > 1:
-                raise IdentifierError(f"{value} is ambiguous; {len(rows)} objects match")
-            return _workspace_row(rows[0])
-
-        rows = connection.execute(
-            _WORKSPACE_SELECT + " WHERE workspace_name = ? LIMIT 2",
-            (value,),
-        ).fetchall()
-        if not rows:
-            raise ArtifactError(f"workspace not found in the project index: {value}; {_REINDEX}")
-        if len(rows) > 1:
-            raise ArtifactError(f"duplicate workspace name in the project index: {value}")
-        return _workspace_row(rows[0])
-
-
-def list_workspaces(path: Path) -> tuple[WorkspaceRow, ...]:
-    with _connection(path) as connection:
-        rows = connection.execute(
-            _WORKSPACE_SELECT
-            + " ORDER BY workspace_name IS NULL, workspace_name, workspace_hash"
-        ).fetchall()
-    return tuple(_workspace_row(row) for row in rows)
-
-
-def workspace_name_exists(path: Path, name: str) -> bool:
-    with _connection(path) as connection:
-        row = connection.execute(
-            "SELECT 1 FROM workspaces WHERE workspace_name = ?",
-            (name,),
-        ).fetchone()
-    return row is not None
-
-
 def resolve_line(path: Path, value: str) -> LineRow:
     _, hash_part = parse_typed(value, ObjectType.LINE)
     with _connection(path) as connection:
@@ -89,7 +36,7 @@ def resolve_line(path: Path, value: str) -> LineRow:
             (f"{hash_part}%",),
         ).fetchall()
     if not rows:
-        raise IdentifierError(f"{value} does not resolve in the project index; {_REINDEX}")
+        raise IdentifierError(f"{value} does not resolve in the workspace index; {_REINDEX}")
     if len(rows) > 1:
         raise IdentifierError(f"{value} is ambiguous; {len(rows)} objects match")
     return _line_row(rows[0])
@@ -181,14 +128,6 @@ def _connection(path: Path) -> Iterator[sqlite3.Connection]:
         connection.close()
 
 
-def _workspace_row(row: sqlite3.Row) -> WorkspaceRow:
-    return WorkspaceRow(
-        identifier=Identifier(ObjectType.WORKSPACE, str(row["workspace_hash"])),
-        name=str(row["workspace_name"]) if row["workspace_name"] is not None else None,
-        created_at=str(row["created_at"]),
-    )
-
-
 def _line_row(row: sqlite3.Row) -> LineRow:
     return LineRow(
         identifier=Identifier(ObjectType.LINE, str(row["line_hash"])),
@@ -198,9 +137,6 @@ def _line_row(row: sqlite3.Row) -> LineRow:
     )
 
 
-_WORKSPACE_SELECT = (
-    "SELECT workspace_hash, workspace_name, created_at FROM workspaces"
-)
 _LINE_SELECT = (
     "SELECT line_hash, workspace_hash, created_at, graph_count FROM lines"
 )

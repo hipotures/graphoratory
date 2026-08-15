@@ -15,8 +15,6 @@ from graphoratory.artifacts import (
     GRAPH_FILE,
     WorkspaceArtifact,
     scan_line_artifacts,
-    scan_workspace_directories,
-    workspace_artifact,
 )
 from graphoratory.database.schema import (
     graph_corpora,
@@ -29,8 +27,8 @@ from graphoratory.graphs import Graph, read_graphs_jsonl_gz
 from graphoratory.jsonio import canonical_json_bytes, read_json
 
 
-def database_path(project_root: Path) -> Path:
-    return project_root / DATABASE_NAME
+def database_path(workspace_path: Path) -> Path:
+    return workspace_path / DATABASE_NAME
 
 
 def make_engine(path: Path) -> Engine:
@@ -122,45 +120,37 @@ def index_line(connection: Connection, manifest: dict[str, Any]) -> None:
     )
 
 
-def rebuild_database(
-    project_root: Path,
-    workspace_root: Path,
-) -> tuple[WorkspaceArtifact, ...]:
-    destination = database_path(project_root)
+def rebuild_database(workspace: WorkspaceArtifact) -> None:
+    """Rebuild exactly one workspace-local derived SQLite index."""
+    destination = database_path(workspace.path)
     temporary = destination.with_name(f".{destination.name}.reindex")
     delete_database(temporary)
-    scanned: list[WorkspaceArtifact] = []
     try:
         migrate(temporary)
         engine = make_engine(temporary)
         try:
             with engine.begin() as connection:
-                for workspace_path in scan_workspace_directories(workspace_root):
-                    workspace = workspace_artifact(workspace_path)
-                    if workspace.identifier.display != workspace_path.name:
-                        raise ValueError(
-                            f"workspace directory does not match manifest: {workspace_path}"
-                        )
-                    scanned.append(workspace)
-                    index_workspace(
-                        connection,
-                        read_json(workspace_path / "manifest.json"),
-                    )
-                    _index_graphs_from_artifacts(connection, workspace)
-                    _index_lines_from_artifacts(connection, workspace)
+                index_workspace(
+                    connection,
+                    read_json(workspace.path / "manifest.json"),
+                )
+                _index_graphs_from_artifacts(connection, workspace)
+                _index_lines_from_artifacts(connection, workspace)
             with engine.connect() as connection:
                 result = connection.execute(text("PRAGMA integrity_check")).scalar_one()
                 if result != "ok":
                     raise RuntimeError(f"rebuilt SQLite integrity check failed: {result}")
+                foreign_key_errors = connection.execute(
+                    text("PRAGMA foreign_key_check")
+                ).fetchall()
+                if foreign_key_errors:
+                    raise RuntimeError("rebuilt SQLite foreign-key check failed")
                 connection.execute(text("PRAGMA wal_checkpoint(TRUNCATE)"))
         finally:
             engine.dispose()
         delete_database(destination)
         temporary.replace(destination)
         _delete_sidecars(temporary)
-        for workspace in scanned:
-            delete_database(workspace.path / DATABASE_NAME)
-        return tuple(scanned)
     except BaseException:
         delete_database(temporary)
         raise

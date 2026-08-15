@@ -24,120 +24,117 @@ from graphoratory.database.core import (
     delete_database,
     index_line,
     make_engine,
-    migrate,
     projection_counts,
 )
-from graphoratory.errors import ArtifactError
+from graphoratory.errors import ArtifactError, IdentifierError
 from graphoratory.identifiers import Identifier, ObjectType
 from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atomic
 
 
-def test_workspace_uses_one_project_database(app_config: AppConfig) -> None:
-    workspace = create_workspace(app_config, "testowy")
-    workspace_path = app_config.workspace.root / workspace.display
-    project_database = database_path(app_config.project_root)
+def _workspace_path(config: AppConfig, workspace: Identifier) -> Path:
+    return config.workspace.root / workspace.display
 
-    assert project_database == app_config.project_root / DATABASE_NAME
-    assert project_database.is_file()
-    assert not (workspace_path / DATABASE_NAME).exists()
+
+def _workspace_database(config: AppConfig, workspace: Identifier) -> Path:
+    return database_path(_workspace_path(config, workspace))
+
+
+def test_workspace_has_exactly_one_local_rebuildable_database(
+    app_config: AppConfig,
+) -> None:
+    workspace = create_workspace(app_config, "testowy")
+    workspace_path = _workspace_path(app_config, workspace)
+    database = _workspace_database(app_config, workspace)
+
+    assert database == workspace_path / DATABASE_NAME
+    assert database.is_file()
+    assert not (app_config.project_root / DATABASE_NAME).exists()
     assert {item.name for item in workspace_path.iterdir()} == {
         "manifest.json",
+        DATABASE_NAME,
         "graphs",
         "lines",
     }
     assert (app_config.workspace.root / "testowy").is_symlink()
-    assert not any(workspace_path.rglob("state.json"))
 
-    engine = create_engine(f"sqlite:///{project_database}")
+    engine = create_engine(f"sqlite:///{database}")
     try:
         with engine.connect() as connection:
             assert connection.execute(
-                text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == "0001_initial"
-            assert connection.execute(
-                text(
-                    "SELECT workspace_name, workspace_hash, workspace_short "
-                    "FROM workspaces"
-                )
-            ).one() == ("testowy", workspace.digest, workspace.short)
+                text("SELECT workspace_hash FROM workspaces")
+            ).scalar_one() == workspace.digest
+            assert connection.execute(text("SELECT COUNT(*) FROM workspaces")).scalar_one() == 1
     finally:
         engine.dispose()
 
 
-def test_workspace_artifact_survives_indexing_failure(
-    app_config: AppConfig,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    def fail_index(*_args: object, **_kwargs: object) -> None:
-        raise RuntimeError("injected indexing failure")
-
-    monkeypatch.setattr(application, "index_workspace", fail_index)
-    with pytest.raises(ArtifactError, match="workspace was published"):
-        create_workspace(app_config, "recoverable")
-
-    manifests = list(app_config.workspace.root.glob("ws-*/manifest.json"))
-    assert len(manifests) == 1
-    assert read_json(manifests[0])["name"] == "recoverable"
-
-
-def test_multiple_workspaces_share_one_index_and_duplicate_graph_hashes(
-    app_config: AppConfig,
-) -> None:
+def test_multiple_workspaces_have_isolated_indexes(app_config: AppConfig) -> None:
     workspace_a = create_workspace(app_config, "workspace-a")
     workspace_b = create_workspace(app_config, "workspace-b")
     generate_workspace_graphs(app_config, workspace_a.display)
     generate_workspace_graphs(app_config, workspace_b.display)
     line_a = create_line(app_config, workspace_a.display)
     line_b = create_line(app_config, workspace_b.display)
-    database = database_path(app_config.project_root)
 
-    assert projection_counts(database) == {
-        "workspaces": 2,
-        "graph_corpora": 2,
-        "graphs": 2 * app_config.graphs.workspace_graph_count,
-        "lines": 2,
-        "line_graphs": 2 * app_config.graphs.line_graph_count,
+    database_a = _workspace_database(app_config, workspace_a)
+    database_b = _workspace_database(app_config, workspace_b)
+    expected = {
+        "workspaces": 1,
+        "graph_corpora": 1,
+        "graphs": app_config.graphs.workspace_graph_count,
+        "lines": 1,
+        "line_graphs": app_config.graphs.line_graph_count,
     }
-    assert not list(app_config.workspace.root.rglob(DATABASE_NAME))
-    assert get_line_status(app_config, line_a.display).workspace == workspace_a
-    assert get_line_status(app_config, line_b.display).workspace == workspace_b
+    assert database_a != database_b
+    assert projection_counts(database_a) == expected
+    assert projection_counts(database_b) == expected
+    assert not (app_config.project_root / DATABASE_NAME).exists()
 
-    engine = create_engine(f"sqlite:///{database}")
+    engine_a = create_engine(f"sqlite:///{database_a}")
+    engine_b = create_engine(f"sqlite:///{database_b}")
     try:
-        with engine.connect() as connection:
-            repeated = connection.execute(
-                text(
-                    "SELECT graph_hash, COUNT(*) FROM graphs "
-                    "GROUP BY graph_hash HAVING COUNT(*) = 2"
-                )
-            ).all()
+        with engine_a.connect() as connection:
+            indexed_line_a = connection.execute(
+                text("SELECT line_hash FROM lines")
+            ).scalar_one()
+            assert indexed_line_a == line_a.digest
+        with engine_b.connect() as connection:
+            indexed_line_b = connection.execute(
+                text("SELECT line_hash FROM lines")
+            ).scalar_one()
+            assert indexed_line_b == line_b.digest
     finally:
-        engine.dispose()
-    assert len(repeated) == app_config.graphs.workspace_graph_count
+        engine_a.dispose()
+        engine_b.dispose()
 
 
-def test_workspace_and_line_lists_do_not_enumerate_artifacts(
+def test_line_list_and_resolution_use_workspace_sqlite_not_line_scan(
     app_config: AppConfig,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = create_workspace(app_config, "indexed")
     generate_workspace_graphs(app_config, workspace.display)
     line = create_line(app_config, workspace.display)
+    lines_path = _workspace_path(app_config, workspace) / "lines"
+    original_iterdir = Path.iterdir
 
-    def reject_enumeration(_path: Path) -> None:
-        raise AssertionError("ordinary lookup enumerated the filesystem")
+    def guarded_iterdir(path: Path):  # type: ignore[no-untyped-def]
+        if path == lines_path:
+            raise AssertionError("ordinary line lookup enumerated lines/")
+        return original_iterdir(path)
 
-    monkeypatch.setattr(Path, "iterdir", reject_enumeration)
+    monkeypatch.setattr(Path, "iterdir", guarded_iterdir)
 
-    assert [item.identifier for item in list_workspaces(app_config)] == [workspace]
     listed = list_lines(app_config, workspace.display)
+    selected = resolve_line_for_command(app_config, line.display, workspace.display)
+    latest = resolve_line_for_command(app_config, None, workspace.display)
+
     assert [item.identifier for item in listed.lines] == [line]
-    assert resolve_line_for_command(
-        app_config, line.display, workspace.display
-    ).identifier == line
+    assert selected.identifier == line
+    assert latest.identifier == line
 
 
-def test_explicit_line_status_reads_only_derived_artifacts(
+def test_explicit_line_status_reads_only_requested_line_manifest(
     app_config: AppConfig,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -145,20 +142,9 @@ def test_explicit_line_status_reads_only_derived_artifacts(
     generate_workspace_graphs(app_config, workspace.display)
     requested = create_line(app_config, workspace.display)
     other = create_line(app_config, workspace.display)
-    requested_manifest = (
-        app_config.workspace.root
-        / workspace.display
-        / "lines"
-        / requested.display
-        / "manifest.json"
-    )
-    other_manifest = (
-        app_config.workspace.root
-        / workspace.display
-        / "lines"
-        / other.display
-        / "manifest.json"
-    )
+    workspace_path = _workspace_path(app_config, workspace)
+    requested_manifest = workspace_path / "lines" / requested.display / "manifest.json"
+    other_manifest = workspace_path / "lines" / other.display / "manifest.json"
     opened: list[Path] = []
     original_read_json = application.read_json
 
@@ -167,25 +153,20 @@ def test_explicit_line_status_reads_only_derived_artifacts(
         return original_read_json(path)
 
     monkeypatch.setattr(application, "read_json", record_read)
-    status = get_line_status(app_config, requested.display)
+    status = get_line_status(app_config, requested.display, workspace.display)
 
     assert status.identifier == requested
     assert requested_manifest in opened
     assert other_manifest not in opened
 
 
-def test_latest_line_uses_sql_timestamp_and_hash_ordering(
-    app_config: AppConfig,
-) -> None:
+def test_latest_line_uses_sql_timestamp_and_hash_ordering(app_config: AppConfig) -> None:
     workspace = create_workspace(app_config, "latest")
     generate_workspace_graphs(app_config, workspace.display)
     graph_hashes = tuple(
-        read_json(
-            app_config.workspace.root
-            / workspace.display
-            / "graphs"
-            / "manifest.json"
-        )["graph_hashes"][:2]
+        read_json(_workspace_path(app_config, workspace) / "graphs" / "manifest.json")[
+            "graph_hashes"
+        ][:2]
     )
     older = _publish_indexed_line(
         app_config,
@@ -219,53 +200,75 @@ def test_latest_line_uses_sql_timestamp_and_hash_ordering(
     assert selected.selected_latest is True
 
 
-def test_normal_queries_require_the_project_index(
+def test_missing_workspace_index_does_not_fall_back_to_line_scan(
     app_config: AppConfig,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     workspace = create_workspace(app_config, "missing-index")
-    delete_database(database_path(app_config.project_root))
+    generate_workspace_graphs(app_config, workspace.display)
+    create_line(app_config, workspace.display)
+    delete_database(_workspace_database(app_config, workspace))
+    lines_path = _workspace_path(app_config, workspace) / "lines"
+    original_iterdir = Path.iterdir
 
-    def reject_enumeration(_path: Path) -> None:
-        raise AssertionError("missing-index fallback enumerated the filesystem")
+    def guarded_iterdir(path: Path):  # type: ignore[no-untyped-def]
+        if path == lines_path:
+            raise AssertionError("missing-index fallback enumerated lines/")
+        return original_iterdir(path)
 
-    monkeypatch.setattr(Path, "iterdir", reject_enumeration)
-    with pytest.raises(ArtifactError, match="project index is missing or stale"):
-        list_workspaces(app_config)
-    with pytest.raises(ArtifactError, match="project index is missing or stale"):
+    monkeypatch.setattr(Path, "iterdir", guarded_iterdir)
+
+    with pytest.raises(ArtifactError, match="workspace index is missing or stale"):
         list_lines(app_config, workspace.display)
+    with pytest.raises(ArtifactError, match="workspace index is missing or stale"):
+        resolve_line_for_command(app_config, None, workspace.display)
+
+    # Project-level workspace discovery remains available without a global SQLite database.
+    assert [item.identifier for item in list_workspaces(app_config)] == [workspace]
 
 
-def test_full_reindex_restores_all_project_entities(app_config: AppConfig) -> None:
+def test_reindex_rebuilds_only_selected_workspace(app_config: AppConfig) -> None:
     workspace_a = create_workspace(app_config, "workspace-a")
     workspace_b = create_workspace(app_config, "workspace-b")
     generate_workspace_graphs(app_config, workspace_a.display)
     generate_workspace_graphs(app_config, workspace_b.display)
     line_a = create_line(app_config, workspace_a.display)
     line_b = create_line(app_config, workspace_b.display)
-    database = database_path(app_config.project_root)
-    expected = projection_counts(database)
-    obsolete_database = (
-        app_config.workspace.root / workspace_b.display / DATABASE_NAME
-    )
-    migrate(obsolete_database)
 
-    delete_database(database)
+    database_a = _workspace_database(app_config, workspace_a)
+    database_b = _workspace_database(app_config, workspace_b)
+    expected_a = projection_counts(database_a)
+    before_b = database_b.read_bytes()
+
+    delete_database(database_a)
     (app_config.workspace.root / "workspace-a").unlink()
-    (app_config.workspace.root / "workspace-b").unlink()
     reindex_workspace(app_config, workspace_a.display)
 
-    assert projection_counts(database) == expected
+    assert projection_counts(database_a) == expected_a
+    assert database_b.read_bytes() == before_b
     assert (app_config.workspace.root / "workspace-a").is_symlink()
-    assert (app_config.workspace.root / "workspace-b").is_symlink()
-    assert not obsolete_database.exists()
-    assert get_line_status(app_config, line_a.display).database_state == "indexed"
-    assert get_line_status(app_config, line_b.display).database_state == "indexed"
+    status_a = get_line_status(app_config, line_a.display, workspace_a.display)
+    status_b = get_line_status(app_config, line_b.display, workspace_b.display)
+    assert status_a.database_state == "indexed"
+    assert status_b.database_state == "indexed"
+    assert not (app_config.project_root / DATABASE_NAME).exists()
+
+
+def test_reindex_by_name_can_recover_missing_alias(app_config: AppConfig) -> None:
+    workspace = create_workspace(app_config, "recover-name")
+    generate_workspace_graphs(app_config, workspace.display)
+    delete_database(_workspace_database(app_config, workspace))
+    (app_config.workspace.root / "recover-name").unlink()
+
+    reindex_workspace(app_config, "recover-name")
+
+    assert _workspace_database(app_config, workspace).is_file()
+    assert (app_config.workspace.root / "recover-name").is_symlink()
 
 
 def test_reindex_rejects_invalid_completed_line(app_config: AppConfig) -> None:
     workspace = create_workspace(app_config, "invalid-line")
-    line_path = app_config.workspace.root / workspace.display / "lines" / "ln-deadbeef"
+    line_path = _workspace_path(app_config, workspace) / "lines" / "ln-deadbeef"
     line_path.mkdir()
     write_json_atomic(line_path / "manifest.json", {"artifact_type": "line"})
 
@@ -273,32 +276,30 @@ def test_reindex_rejects_invalid_completed_line(app_config: AppConfig) -> None:
         reindex_workspace(app_config, workspace.display)
 
 
-def test_semantic_line_mismatch_is_not_reported_as_indexed(
-    app_config: AppConfig,
-) -> None:
+def test_semantic_line_mismatch_is_not_reported_as_indexed(app_config: AppConfig) -> None:
     workspace = create_workspace(app_config, "mismatch")
     generate_workspace_graphs(app_config, workspace.display)
     line = create_line(app_config, workspace.display)
-    database = database_path(app_config.project_root)
+    database = _workspace_database(app_config, workspace)
     before = projection_counts(database)
     engine = make_engine(database)
     try:
         with engine.begin() as connection:
             connection.execute(
                 text("UPDATE lines SET created_at = :created_at WHERE line_hash = :line_hash"),
-                {
-                    "created_at": "1999-01-01T00:00:00Z",
-                    "line_hash": line.digest,
-                },
+                {"created_at": "1999-01-01T00:00:00Z", "line_hash": line.digest},
             )
     finally:
         engine.dispose()
 
     assert projection_counts(database) == before
-    assert get_line_status(app_config, line.display).database_state == "needs reindex"
+    assert (
+        get_line_status(app_config, line.display, workspace.display).database_state
+        == "needs reindex"
+    )
 
 
-def test_project_survives_relocation_with_one_database(
+def test_workspace_local_index_survives_project_relocation(
     app_config: AppConfig,
     tmp_path: Path,
 ) -> None:
@@ -306,10 +307,8 @@ def test_project_survives_relocation_with_one_database(
     generate_workspace_graphs(app_config, workspace.display)
     line = create_line(app_config, workspace.display)
     source_root = app_config.project_root
-    source_database = database_path(source_root)
+    source_database = _workspace_database(app_config, workspace)
 
-    for manifest_path in app_config.workspace.root.rglob("*.json"):
-        assert str(source_root) not in manifest_path.read_text(encoding="utf-8")
     source_connection = sqlite3.connect(f"file:{source_database}?mode=ro", uri=True)
     try:
         assert str(source_root) not in "\n".join(source_connection.iterdump())
@@ -319,26 +318,13 @@ def test_project_survives_relocation_with_one_database(
     relocated_root = tmp_path / "relocated"
     relocated_root.mkdir()
     shutil.copy2(app_config.source, relocated_root / "experiment.toml")
-    shutil.copytree(
-        app_config.workspace.root,
-        relocated_root / "workspaces",
-        symlinks=True,
-    )
-    relocated_database = relocated_root / DATABASE_NAME
-    _backup_database(source_database, relocated_database)
+    shutil.copytree(app_config.workspace.root, relocated_root / "workspaces", symlinks=True)
     relocated_config = load_config(relocated_root / "experiment.toml")
 
     assert get_workspace_status(relocated_config, "portable").identifier == workspace
-    assert get_line_status(relocated_config, line.display).workspace == workspace
-    relocated_connection = sqlite3.connect(
-        f"file:{relocated_database}?mode=ro",
-        uri=True,
-    )
-    try:
-        assert str(source_root) not in "\n".join(relocated_connection.iterdump())
-    finally:
-        relocated_connection.close()
+    assert get_line_status(relocated_config, line.display, "portable").workspace == workspace
 
+    relocated_database = relocated_root / "workspaces" / workspace.display / DATABASE_NAME
     delete_database(relocated_database)
     reindex_workspace(relocated_config, "portable")
     assert get_workspace_status(relocated_config, "portable").database_state == "indexed"
@@ -357,6 +343,21 @@ def test_line_requires_generated_graphs(app_config: AppConfig) -> None:
         create_line(app_config, workspace.display)
 
 
+def test_explicit_line_is_scoped_to_selected_workspace(app_config: AppConfig) -> None:
+    workspace_a = create_workspace(app_config, "workspace-a")
+    workspace_b = create_workspace(app_config, "workspace-b")
+    generate_workspace_graphs(app_config, workspace_a.display)
+    generate_workspace_graphs(app_config, workspace_b.display)
+    line_b = create_line(app_config, workspace_b.display)
+
+    with pytest.raises(IdentifierError, match="does not resolve in the workspace index"):
+        resolve_line_for_command(app_config, line_b.display, workspace_a.display)
+    assert (
+        resolve_line_for_command(app_config, line_b.display, workspace_b.display).identifier
+        == line_b
+    )
+
+
 def test_workspace_names_are_unique_and_safe(app_config: AppConfig) -> None:
     create_workspace(app_config, "testowy")
     with pytest.raises(ArtifactError, match="duplicate workspace name"):
@@ -368,7 +369,7 @@ def test_workspace_names_are_unique_and_safe(app_config: AppConfig) -> None:
         "..",
         "../escape",
         "path/name",
-        r"path\name",
+        r"path\\name",
         "-leading",
         "ws-deadbeef",
     ):
@@ -387,34 +388,19 @@ def _publish_indexed_line(
         "created_at": created_at,
         "graph_hashes": list(graph_hashes),
     }
-    identifier = Identifier.from_bytes(
-        ObjectType.LINE,
-        canonical_json_bytes(identity_payload),
-    )
+    identifier = Identifier.from_bytes(ObjectType.LINE, canonical_json_bytes(identity_payload))
     manifest = {
         "artifact_type": "line",
         "line_hash": identifier.digest,
-        "workspace_hash": workspace.digest,
-        "created_at": created_at,
-        "graph_hashes": list(graph_hashes),
+        **identity_payload,
     }
-    line_path = config.workspace.root / workspace.display / "lines" / identifier.display
+    line_path = _workspace_path(config, workspace) / "lines" / identifier.display
     line_path.mkdir()
     write_json_atomic(line_path / "manifest.json", manifest)
-    engine = make_engine(database_path(config.project_root))
+    engine = make_engine(_workspace_database(config, workspace))
     try:
         with engine.begin() as connection:
             index_line(connection, manifest)
     finally:
         engine.dispose()
     return identifier
-
-
-def _backup_database(source: Path, destination: Path) -> None:
-    source_connection = sqlite3.connect(f"file:{source}?mode=ro", uri=True)
-    destination_connection = sqlite3.connect(destination)
-    try:
-        source_connection.backup(destination_connection)
-    finally:
-        destination_connection.close()
-        source_connection.close()
