@@ -5,7 +5,6 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
-    Text,
 )
 
 metadata = MetaData()
@@ -17,7 +16,6 @@ workspaces = Table(
     Column("workspace_short", String(8), nullable=False, unique=True),
     Column("workspace_name", String(64), unique=True),
     Column("created_at", String, nullable=False),
-    Column("manifest_path", Text, nullable=False),
 )
 
 graphs = Table(
@@ -47,7 +45,6 @@ lines = Table(
     ),
     Column("created_at", String, nullable=False),
     Column("graph_count", Integer, nullable=False),
-    Column("manifest_path", Text, nullable=False),
 )
 
 line_graphs = Table(

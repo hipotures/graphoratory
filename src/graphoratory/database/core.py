@@ -42,14 +42,13 @@ def migrate(path: Path) -> None:
     command.upgrade(config, "head")
 
 
-def index_workspace(connection: Connection, manifest: dict[str, Any], path: Path) -> None:
+def index_workspace(connection: Connection, manifest: dict[str, Any]) -> None:
     connection.execute(
         workspaces.insert().values(
             workspace_hash=manifest["workspace_hash"],
             workspace_short=str(manifest["workspace_hash"])[:8],
             workspace_name=manifest.get("name"),
             created_at=manifest["created_at"],
-            manifest_path=str(path / "manifest.json"),
         )
     )
 
@@ -73,7 +72,7 @@ def index_graphs(
     )
 
 
-def index_line(connection: Connection, manifest: dict[str, Any], line_path: Path) -> None:
+def index_line(connection: Connection, manifest: dict[str, Any]) -> None:
     connection.execute(
         lines.insert().values(
             line_hash=manifest["line_hash"],
@@ -81,7 +80,6 @@ def index_line(connection: Connection, manifest: dict[str, Any], line_path: Path
             workspace_hash=manifest["workspace_hash"],
             created_at=manifest["created_at"],
             graph_count=len(manifest["graph_hashes"]),
-            manifest_path=str(line_path / "manifest.json"),
         )
     )
     connection.execute(
@@ -107,7 +105,7 @@ def rebuild_database(workspace_path: Path) -> None:
         try:
             with engine.begin() as connection:
                 workspace_manifest = read_json(workspace_path / "manifest.json")
-                index_workspace(connection, workspace_manifest, workspace_path)
+                index_workspace(connection, workspace_manifest)
                 graphs_path = workspace_path / "graphs"
                 graphs_manifest_path = graphs_path / "manifest.json"
                 if graphs_manifest_path.is_file():
@@ -172,7 +170,7 @@ def _index_lines_from_artifacts(connection: Connection, workspace_path: Path) ->
     for line_path in sorted(lines_path.iterdir()):
         manifest_path = line_path / "manifest.json"
         if line_path.is_dir() and line_path.name.startswith("ln-") and manifest_path.is_file():
-            index_line(connection, read_json(manifest_path), line_path)
+            index_line(connection, read_json(manifest_path))
 
 
 def _validate_graphs_manifest(

@@ -87,7 +87,12 @@ A workspace contains durable scientific artifacts.
 
 Each workspace also has a unique human-readable name in its authoritative manifest.
 The canonical `ws-xxxxxxxx` identifier remains the filesystem directory name and
-internal identity.
+internal identity. A named workspace also has a relative filesystem symlink such as
+`workspaces/testowy -> ws-xxxxxxxx`, so the name is visible without changing the
+canonical artifact path. Reindexing can recreate this symlink from the manifest.
+
+Persisted artifact relationships use semantic full hashes. Manifests and SQLite
+projections do not store machine-specific absolute checkout or artifact paths.
 
 The workspace configuration itself is not frozen permanently.
 
@@ -131,8 +136,8 @@ The repository root contains the default configuration.
 
 Commands use it automatically unless another config is explicitly supplied.
 
-The optional top-level `active_workspace` setting selects a workspace by human name or
-typed ID for ordinary commands. An explicit `workspace=<name-or-id>` command value takes
+The optional `workspace.active` setting selects a workspace by human name or typed ID
+for ordinary commands. An explicit `workspace=<name-or-id>` command value takes
 precedence. If neither is present, workspace operations fail rather than guessing.
 
 Command-specific configuration overrides use `key=value` syntax where practical.
@@ -140,7 +145,7 @@ Command-specific configuration overrides use `key=value` syntax where practical.
 Example:
 
 ```bash
-graphlab workspace init testowy graphs.count=1000
+graphlab workspace init testowy graphs.workspace_graph_count=1000
 ```
 
 Configuration contains user decisions, not reconstructed runtime state.

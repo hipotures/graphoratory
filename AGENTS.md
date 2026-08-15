@@ -221,6 +221,13 @@ If no explicit configuration is supplied, commands use the root default.
 
 Configuration is editable.
 
+`workspace.active` selects the default workspace by human name or typed workspace ID.
+An explicit command target such as `workspace=testowy` takes precedence.
+
+Named workspaces expose a relative symlink alias beside their canonical `ws-xxxxxxxx`
+directory. Persisted manifests and SQLite projections use semantic hashes and portable
+metadata, never an absolute checkout path.
+
 Do not permanently lock a workspace to the current contents of the config.
 
 Historical artifacts record the parameters that produced them.

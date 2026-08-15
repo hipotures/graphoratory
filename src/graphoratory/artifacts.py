@@ -10,7 +10,7 @@ from typing import Any
 
 from graphoratory.errors import ArtifactError
 from graphoratory.identifiers import Identifier, ObjectType, resolve_typed
-from graphoratory.jsonio import read_json
+from graphoratory.jsonio import read_json, write_json_atomic
 
 WORKSPACE_MANIFEST = "manifest.json"
 DATABASE_NAME = "index.sqlite3"
@@ -64,6 +64,56 @@ def validate_workspace_name(value: str) -> None:
             "workspace name must be 1 to 64 characters using letters, numbers, '-' or '_', "
             "must start with a letter or number, and must not look like a typed workspace ID"
         )
+
+
+def ensure_workspace_alias(workspace: WorkspaceArtifact) -> Path | None:
+    if workspace.name is None:
+        return None
+    alias = workspace.path.parent / workspace.name
+    target = workspace.path.name
+    if alias.is_symlink():
+        if alias.readlink() != Path(target):
+            raise ArtifactError(f"workspace alias points to the wrong target: {alias}")
+        return alias
+    if alias.exists():
+        raise ArtifactError(f"workspace alias path already exists: {alias}")
+    alias.symlink_to(target, target_is_directory=True)
+    return alias
+
+
+def normalize_workspace_manifests(workspace_path: Path) -> None:
+    manifest_path = workspace_path / WORKSPACE_MANIFEST
+    manifest = read_json(manifest_path)
+    changed = "config_source" in manifest
+    manifest.pop("config_source", None)
+    creation_config = manifest.get("creation_config")
+    if isinstance(creation_config, dict) and creation_config.pop("workspace", None) is not None:
+        changed = True
+    if isinstance(creation_config, dict):
+        graphs = creation_config.get("graphs")
+        if isinstance(graphs, dict):
+            changed = _rename_graph_count_keys(graphs) or changed
+    if changed:
+        write_json_atomic(manifest_path, manifest)
+
+    graphs_manifest_path = workspace_path / "graphs" / WORKSPACE_MANIFEST
+    if graphs_manifest_path.is_file():
+        graphs_manifest = read_json(graphs_manifest_path)
+        generation = graphs_manifest.get("generation")
+        if isinstance(generation, dict) and _rename_graph_count_keys(generation):
+            write_json_atomic(graphs_manifest_path, graphs_manifest)
+
+
+def _rename_graph_count_keys(values: dict[str, object]) -> bool:
+    changed = False
+    for old, new in (
+        ("count", "workspace_graph_count"),
+        ("line_sample_size", "line_graph_count"),
+    ):
+        if old in values:
+            values[new] = values.pop(old)
+            changed = True
+    return changed
 
 
 def resolve_line(root: Path, value: str) -> tuple[Identifier, Path, Path]:

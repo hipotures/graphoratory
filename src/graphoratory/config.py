@@ -13,13 +13,14 @@ GRAPH_MODE = "unrestricted_min_degree_3"
 @dataclass(frozen=True, slots=True)
 class WorkspaceConfig:
     root: Path
+    active: str | None
 
 
 @dataclass(frozen=True, slots=True)
 class GraphConfig:
     mode: str
-    count: int
-    line_sample_size: int
+    workspace_graph_count: int
+    line_graph_count: int
     min_order: int
     max_order: int
     seed: int
@@ -27,18 +28,17 @@ class GraphConfig:
 
 @dataclass(frozen=True, slots=True)
 class AppConfig:
-    active_workspace: str | None
     workspace: WorkspaceConfig
     graphs: GraphConfig
     source: Path
 
 
 _OVERRIDE_TYPES: dict[str, type[str] | type[int]] = {
-    "active_workspace": str,
     "workspace.root": str,
+    "workspace.active": str,
     "graphs.mode": str,
-    "graphs.count": int,
-    "graphs.line_sample_size": int,
+    "graphs.workspace_graph_count": int,
+    "graphs.line_graph_count": int,
     "graphs.min_order": int,
     "graphs.max_order": int,
     "graphs.seed": int,
@@ -58,13 +58,18 @@ def load_config(path: Path, overrides: list[str] | None = None) -> AppConfig:
         workspace_raw = raw["workspace"]
         graphs_raw = raw["graphs"]
         config = AppConfig(
-            active_workspace=_optional_string(raw.get("active_workspace"), "active_workspace"),
-            workspace=WorkspaceConfig(root=_root_path(source, str(workspace_raw["root"]))),
+            workspace=WorkspaceConfig(
+                root=_root_path(source, str(workspace_raw["root"])),
+                active=_optional_string(workspace_raw.get("active"), "workspace.active"),
+            ),
             graphs=GraphConfig(
                 mode=str(graphs_raw["mode"]),
-                count=_strict_int(graphs_raw["count"], "graphs.count"),
-                line_sample_size=_strict_int(
-                    graphs_raw["line_sample_size"], "graphs.line_sample_size"
+                workspace_graph_count=_strict_int(
+                    graphs_raw["workspace_graph_count"],
+                    "graphs.workspace_graph_count",
+                ),
+                line_graph_count=_strict_int(
+                    graphs_raw["line_graph_count"], "graphs.line_graph_count"
                 ),
                 min_order=_strict_int(graphs_raw["min_order"], "graphs.min_order"),
                 max_order=_strict_int(graphs_raw["max_order"], "graphs.max_order"),
@@ -82,13 +87,20 @@ def load_config(path: Path, overrides: list[str] | None = None) -> AppConfig:
 
 
 def _validate_sections(raw: dict[str, Any]) -> None:
-    expected = {"active_workspace", "workspace", "graphs"}
+    expected = {"workspace", "graphs"}
     unknown = set(raw) - expected
     if unknown:
         raise ConfigurationError(f"unknown configuration section: {sorted(unknown)[0]}")
     for section, keys in {
-        "workspace": {"root"},
-        "graphs": {"mode", "count", "line_sample_size", "min_order", "max_order", "seed"},
+        "workspace": {"root", "active"},
+        "graphs": {
+            "mode",
+            "workspace_graph_count",
+            "line_graph_count",
+            "min_order",
+            "max_order",
+            "seed",
+        },
     }.items():
         value = raw.get(section)
         if not isinstance(value, dict):
@@ -106,13 +118,13 @@ def _apply_override(config: AppConfig, override: str) -> AppConfig:
     value_type = _OVERRIDE_TYPES.get(key)
     if value_type is None:
         raise ConfigurationError(f"unknown override key: {key}")
-    if key == "active_workspace":
-        return replace(config, active_workspace=text)
     if key == "workspace.root":
         return replace(
             config,
             workspace=replace(config.workspace, root=_root_path(config.source, text)),
         )
+    if key == "workspace.active":
+        return replace(config, workspace=replace(config.workspace, active=text))
     if key == "graphs.mode":
         return replace(config, graphs=replace(config.graphs, mode=text))
     try:
@@ -120,10 +132,10 @@ def _apply_override(config: AppConfig, override: str) -> AppConfig:
     except ValueError as exc:
         raise ConfigurationError(f"{key} must be an integer") from exc
 
-    if key == "graphs.count":
-        return replace(config, graphs=replace(config.graphs, count=value))
-    if key == "graphs.line_sample_size":
-        return replace(config, graphs=replace(config.graphs, line_sample_size=value))
+    if key == "graphs.workspace_graph_count":
+        return replace(config, graphs=replace(config.graphs, workspace_graph_count=value))
+    if key == "graphs.line_graph_count":
+        return replace(config, graphs=replace(config.graphs, line_graph_count=value))
     if key == "graphs.min_order":
         return replace(config, graphs=replace(config.graphs, min_order=value))
     if key == "graphs.max_order":
@@ -154,16 +166,16 @@ def _optional_string(value: Any, key: str) -> str | None:
 
 def _validate(config: AppConfig) -> None:
     graphs = config.graphs
-    if config.active_workspace is not None and not config.active_workspace.strip():
-        raise ConfigurationError("active_workspace must not be empty")
+    if config.workspace.active is not None and not config.workspace.active.strip():
+        raise ConfigurationError("workspace.active must not be empty")
     if not str(config.workspace.root):
         raise ConfigurationError("workspace.root must not be empty")
     if graphs.mode != GRAPH_MODE:
         raise ConfigurationError(f"graphs.mode must be {GRAPH_MODE!r}")
-    if graphs.count < 1:
-        raise ConfigurationError("graphs.count must be positive")
-    if graphs.line_sample_size < 1:
-        raise ConfigurationError("graphs.line_sample_size must be positive")
+    if graphs.workspace_graph_count < 1:
+        raise ConfigurationError("graphs.workspace_graph_count must be positive")
+    if graphs.line_graph_count < 1:
+        raise ConfigurationError("graphs.line_graph_count must be positive")
     if graphs.min_order < 4:
         raise ConfigurationError("graphs.min_order must be at least 4")
     if graphs.max_order < graphs.min_order:

@@ -1,12 +1,11 @@
-active_workspace = "testowy"
-
 [workspace]
 root = "workspaces"
+active = "test01"
 
 [graphs]
 mode = "unrestricted_min_degree_3"
-count = 1000
-line_sample_size = 100
+workspace_graph_count = 1000
+line_graph_count = 100
 min_order = 22
 max_order = 63
 seed = 401

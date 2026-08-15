@@ -117,7 +117,7 @@ def test_explicit_workspace_override_wins(
             "graph",
             "generate",
             "workspace=workspace-b",
-            "graphs.count=4",
+            "graphs.workspace_graph_count=4",
             f"config={config_file}",
         ],
     )
@@ -137,8 +137,20 @@ def test_no_active_workspace_fails_even_with_one_workspace(
     result = runner.invoke(app, ["workspace", "status", f"config={config_file}"])
     assert result.exit_code == 2
     assert "no workspace selected" in result.stderr
-    assert "set active_workspace in experiment.toml" in result.stderr
+    assert "set workspace.active in experiment.toml" in result.stderr
     assert "workspace=<name-or-id>" in result.stderr
+
+    configured = runner.invoke(
+        app,
+        [
+            "workspace",
+            "status",
+            "workspace.active=only",
+            f"config={config_file}",
+        ],
+    )
+    assert configured.exit_code == 0
+    assert "only" in configured.stdout
 
 
 def test_unknown_override_fails_clearly(config_file: Path) -> None:
@@ -168,12 +180,8 @@ def test_line_status_requires_an_explicit_line() -> None:
 
 
 def _set_active_workspace(path: Path, value: str) -> None:
-    lines = [
-        line
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if not line.startswith("active_workspace =")
-    ]
-    path.write_text(
-        f'active_workspace = "{value}"\n\n' + "\n".join(lines) + "\n",
-        encoding="utf-8",
-    )
+    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = [line for line in lines if not line.startswith("active =")]
+    workspace_section = lines.index("[workspace]")
+    lines.insert(workspace_section + 2, f'active = "{value}"')
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")

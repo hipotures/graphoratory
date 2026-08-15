@@ -17,20 +17,19 @@ uv run graphlab --help
 Every command loads `experiment.toml` from the current directory unless given
 `config=/path/to/file.toml`. Normal command targets use positional arguments. Additional
 configuration uses `key=value` overrides, including nested settings such as
-`graphs.count=20`. Unknown keys fail.
+`graphs.workspace_graph_count=20`. Unknown keys fail.
 
 The default configuration is:
 
 ```toml
-active_workspace = "testowy"
-
 [workspace]
 root = "workspaces"
+active = "testowy"
 
 [graphs]
 mode = "unrestricted_min_degree_3"
-count = 1000
-line_sample_size = 100
+workspace_graph_count = 1000
+line_graph_count = 100
 min_order = 22
 max_order = 63
 seed = 401
@@ -46,18 +45,23 @@ use HEG's mixed-degree construction.
 ```bash
 uv run graphlab workspace init testowy
 uv run graphlab workspace list
-uv run graphlab graph generate graphs.count=20
+uv run graphlab graph generate graphs.workspace_graph_count=20
 uv run graphlab workspace status
 uv run graphlab workspace status testowy
-uv run graphlab line create graphs.line_sample_size=5
+uv run graphlab line create graphs.line_graph_count=5
 uv run graphlab line status ln-xxxxxxxx
 uv run graphlab workspace reindex
 ```
 
 Commands that need a workspace use an explicit `workspace=<name-or-id>` first, then
-`active_workspace`; they fail rather than guessing if neither is set. `line status`
+`workspace.active`; they fail rather than guessing if neither is set. `line status`
 always requires an explicit line. A workspace accepts one immutable graph generation;
 a second `graph generate` fails instead of overwriting it.
+
+Each named workspace keeps its canonical `workspaces/ws-xxxxxxxx/` directory and exposes
+a relative human-readable alias such as `workspaces/testowy -> ws-xxxxxxxx`. The alias is
+recreated by `workspace reindex`; persisted manifests and SQLite rows contain semantic
+hashes rather than absolute checkout paths.
 
 Typed short IDs and artifact directory names are always lowercase:
 
@@ -73,6 +77,7 @@ The full lowercase SHA-256 hash is authoritative inside manifests and SQLite.
 
 ```text
 workspaces/
+├── testowy -> ws-xxxxxxxx
 └── ws-xxxxxxxx/
     ├── manifest.json
     ├── index.sqlite3

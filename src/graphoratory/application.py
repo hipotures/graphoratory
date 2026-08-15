@@ -12,6 +12,8 @@ from graphoratory.artifacts import (
     GRAPH_FILE,
     WorkspaceArtifact,
     discard_directory,
+    ensure_workspace_alias,
+    normalize_workspace_manifests,
     publish_directory,
     resolve_line,
     resolve_workspace,
@@ -86,6 +88,7 @@ def create_workspace(config: AppConfig, name: str) -> Identifier:
     if final_path.exists():
         raise ArtifactError(f"workspace path already exists: {final_path}")
     temporary = temporary_directory(config.workspace.root, "workspace")
+    published = False
     try:
         (temporary / "graphs").mkdir()
         (temporary / "lines").mkdir()
@@ -94,9 +97,7 @@ def create_workspace(config: AppConfig, name: str) -> Identifier:
             "name": name,
             "workspace_hash": identifier.digest,
             "created_at": created_at,
-            "config_source": str(config.source),
             "creation_config": {
-                "workspace": {"root": str(config.workspace.root)},
                 "graphs": _graph_config_manifest(config),
             },
         }
@@ -105,11 +106,15 @@ def create_workspace(config: AppConfig, name: str) -> Identifier:
         engine = make_engine(temporary / DATABASE_NAME)
         try:
             with engine.begin() as connection:
-                index_workspace(connection, manifest, final_path)
+                index_workspace(connection, manifest)
         finally:
             engine.dispose()
         publish_directory(temporary, final_path)
+        published = True
+        ensure_workspace_alias(WorkspaceArtifact(identifier, name, created_at, final_path))
     except BaseException:
+        if published:
+            discard_directory(final_path)
         discard_directory(temporary)
         raise
     return identifier
@@ -125,7 +130,7 @@ def generate_workspace_graphs(
     if manifest_path.exists():
         raise ArtifactError("workspace graphs already exist and cannot be overwritten")
     generated = generate_graphs(
-        count=config.graphs.count,
+        count=config.graphs.workspace_graph_count,
         min_order=config.graphs.min_order,
         max_order=config.graphs.max_order,
         seed=config.graphs.seed,
@@ -178,10 +183,10 @@ def create_line(
         raise ArtifactError("workspace has no completed graphs; run graph generate first")
     graphs_manifest = read_json(graphs_manifest_path)
     graph_hashes = list(graphs_manifest["graph_hashes"])
-    sample_size = config.graphs.line_sample_size
+    sample_size = config.graphs.line_graph_count
     if sample_size > len(graph_hashes):
         raise ArtifactError(
-            f"graphs.line_sample_size={sample_size} exceeds graph count {len(graph_hashes)}"
+            f"graphs.line_graph_count={sample_size} exceeds graph count {len(graph_hashes)}"
         )
     selected = SystemRandom().sample(graph_hashes, sample_size)
     created_at = _timestamp()
@@ -205,7 +210,7 @@ def create_line(
         engine = make_engine(database_path(workspace_path))
         try:
             with engine.begin() as connection:
-                index_line(connection, manifest, final_path)
+                index_line(connection, manifest)
         finally:
             engine.dispose()
     except Exception as exc:
@@ -275,16 +280,18 @@ def get_line_status(config: AppConfig, line_value: str) -> LineStatus:
 
 def reindex_workspace(config: AppConfig, workspace_value: str | None = None) -> Identifier:
     workspace = _selected_workspace(config, workspace_value)
+    normalize_workspace_manifests(workspace.path)
     rebuild_database(workspace.path)
+    ensure_workspace_alias(workspace)
     return workspace.identifier
 
 
 def list_workspaces(config: AppConfig) -> list[WorkspaceSummary]:
     active_hash: str | None = None
-    if config.active_workspace is not None:
+    if config.workspace.active is not None:
         with suppress(GraphoratoryError):
             active_hash = resolve_workspace(
-                config.workspace.root, config.active_workspace
+                config.workspace.root, config.workspace.active
             ).identifier.digest
     return [
         WorkspaceSummary(
@@ -300,8 +307,8 @@ def list_workspaces(config: AppConfig) -> list[WorkspaceSummary]:
 def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:
     return {
         "mode": config.graphs.mode,
-        "count": config.graphs.count,
-        "line_sample_size": config.graphs.line_sample_size,
+        "workspace_graph_count": config.graphs.workspace_graph_count,
+        "line_graph_count": config.graphs.line_graph_count,
         "min_order": config.graphs.min_order,
         "max_order": config.graphs.max_order,
         "seed": config.graphs.seed,
@@ -310,10 +317,10 @@ def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:
 
 
 def _selected_workspace(config: AppConfig, explicit: str | None) -> WorkspaceArtifact:
-    value = explicit if explicit is not None else config.active_workspace
+    value = explicit if explicit is not None else config.workspace.active
     if value is None:
         raise ArtifactError(
-            "no workspace selected; set active_workspace in experiment.toml "
+            "no workspace selected; set workspace.active in experiment.toml "
             "or pass workspace=<name-or-id>"
         )
     return resolve_workspace(config.workspace.root, value)

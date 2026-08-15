@@ -15,8 +15,8 @@ root = "workspaces"
 
 [graphs]
 mode = "unrestricted_min_degree_3"
-count = 6
-line_sample_size = 2
+workspace_graph_count = 6
+line_graph_count = 2
 min_order = 10
 max_order = 13
 seed = 401
