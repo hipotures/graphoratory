@@ -18,10 +18,10 @@ The implemented operations are:
 - select a workspace explicitly or through `workspace.active`;
 - list workspace names, canonical IDs, creation times, and the configured active workspace;
 - show read-only workspace status;
-- rebuild the single project-wide SQLite index from all authoritative workspace artifacts;
+- rebuild a workspace SQLite index from authoritative artifacts;
 - generate and persist one graph corpus using a concrete generator or weighted mix;
 - create a line with a fixed graph subset;
-- list lines in a selected workspace from the project SQLite index;
+- list lines in a selected workspace from authoritative manifests;
 - show read-only status for an explicit line or the latest line in the selected workspace;
 - resolve lowercase typed workspace, line, and graph IDs;
 - index workspace, graph, line, and line-membership data in SQLite;
@@ -216,14 +216,14 @@ explicit LINE
 ```
 
 Without `LINE`, the workspace is selected by the ordinary explicit `workspace=...` then
-`workspace.active` precedence. Latest uses an indexed query ordered by `created_at DESC`,
-then full `line_hash DESC`, with `LIMIT 1`. Directory order, filesystem timestamps, and
-SQLite insertion order do not determine recency.
+`workspace.active` precedence. Latest means the greatest parsed UTC `created_at` timestamp
+from immutable line manifests. An exact timestamp tie is resolved by descending full line
+hash. Directory order, filesystem timestamps, SQLite insertion order, and line-ID
+lexicographic order do not determine recency.
 
 This is a visible convenience for interactive CLI use: output labels an implicit choice as
 `latest in workspace NAME`. There is no `active_line`, line configuration section, current
-line file, or mutable selection state. The project SQLite index is required for latest-line
-resolution.
+line file, or mutable selection state. SQLite is not required for latest-line resolution.
 Automated and internal execution should continue to pass a concrete line ID.
 
 When an explicit line is used together with configured or explicit workspace context, the
@@ -251,8 +251,8 @@ an exact timestamp tie. This is the same ordering used by implicit latest-line s
 so the first row is marked `*` in `LATEST`. The marker is derived display metadata, not
 active-line state.
 
-Listing is read-only and uses the project SQLite index with the same ordering as latest-line
-selection. It does not enumerate or read line manifests. An empty indexed workspace exits
+Listing is read-only and reconstructed from authoritative line manifests. It does not
+require SQLite, reindex artifacts, or change configuration. An empty workspace exits
 successfully with `No lines in workspace NAME.`
 
 ## 5. Workspace names and filesystem layout
@@ -285,11 +285,11 @@ IDs used as names, and duplicate names are rejected.
 The authoritative layout is:
 
 ```text
-index.sqlite3
 workspaces/
   NAME -> ws-xxxxxxxx
   ws-xxxxxxxx/
     manifest.json
+    index.sqlite3
     graphs/
       manifest.json
       graphs.jsonl.gz
@@ -317,8 +317,7 @@ under a workspace and no separate corpus entity or directory is implemented.
 
 ## 7. Authoritative artifacts
 
-Filesystem artifacts are authoritative. The single project SQLite database is a rebuildable
-project-wide index, locator, and query projection.
+Filesystem artifacts are authoritative. SQLite is a rebuildable projection.
 
 The workspace manifest stores its semantic identity, human name, creation time, and graph
 creation configuration. It does not store the absolute configuration path or workspace-root
@@ -344,39 +343,36 @@ reindexing.
 
 ## 8. SQLite and reindexing
 
-Graphoratory has exactly one SQLite database at `<project_root>/index.sqlite3`. It indexes
-all workspaces in the project:
+Each canonical workspace directory contains `index.sqlite3`. SQLite indexes:
 
 - the full and short workspace hashes and unique human name;
 - full and short graph hashes, workspace ownership, and graph order;
 - full and short line hashes, workspace ownership, creation time, and graph count;
 - ordered line-to-graph membership using full hashes.
 
-The graph key is `(workspace_hash, graph_hash)`, so different workspaces may contain the same
-content-addressed graph. SQLite persists semantic IDs and compact metadata, not
-machine-specific absolute artifact paths. Large graph payloads remain only in the resolved
-workspace's `graphs/graphs.jsonl.gz`.
+Migration `0002_workspace_name` added the unique workspace-name projection. Migration
+`0003_portable_persistence` removes the redundant `manifest_path` columns from `workspaces`
+and `lines`. SQLite therefore persists semantic IDs and metadata, not machine-specific
+absolute artifact paths.
 
-Normal workspace and line resolution, lists, latest-line selection, and status counts query
-SQLite. When authoritative details are needed, the application derives and reads one exact
-manifest. A missing, unreadable, or specifically inconsistent index fails with a
-`project index is missing or stale` diagnostic; ordinary commands do not scan artifacts or
-repair the index automatically.
+Migration `0004_graph_corpus_generator` adds one `graph_corpora` projection row per generated
+workspace corpus. It stores the selected generator, compact canonical JSON configuration,
+requested and actual graph counts, and aggregate attempt/rejection statistics. Reindexing
+reconstructs this row from the graph manifest.
 
-`workspace reindex` is the explicit filesystem scanner. One invocation reads every
-workspace, graph, and line artifact, validates hashes, identities, counts, memberships, and
-ownership, constructs a completely new database, verifies SQLite integrity, and atomically
-replaces the old project projection. It recreates relative human-name aliases and removes
-obsolete workspace-local SQLite files after publishing the project database. The Rich report
-shows the selected workspace, while the rebuild itself always covers the whole project.
+`workspace reindex` reads the workspace, graph, and line artifacts, validates their hashes and
+counts, constructs a new database, verifies SQLite integrity, and atomically replaces the old
+projection. It also removes obsolete absolute-path provenance fields from older manifests and
+recreates the relative human-name alias. After success it renders a Rich report containing
+the workspace name and ID, creation time, portable configuration reference, selected
+generator, graph and line counts, order range, indexed database state, and disk usage.
 Project-relative references use notation such as `$PROJECT/experiment.toml`; the report
 does not print the absolute configuration or checkout path. `$PROJECT` is the command
 invocation directory when the selected config is inside it; for an external config it is
 the config file's containing directory. Configuration-loading errors use the same notation.
 
-Deleting `<project_root>/index.sqlite3` and running `graphlab workspace reindex` reconstructs
-all workspace identities and names, graphs, lines, and line memberships from filesystem
-artifacts.
+Deleting SQLite and running `graphlab workspace reindex` reconstructs workspace identity and
+name, graphs, lines, and line memberships from the filesystem artifacts.
 
 ## 9. Override syntax
 

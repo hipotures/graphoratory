@@ -117,7 +117,7 @@ def workspace_list(
     json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
-    """List workspaces from the project index."""
+    """List workspaces from their authoritative manifests."""
 
     def execute() -> None:
         config, operational = _command_config(overrides)
@@ -192,7 +192,7 @@ def workspace_reindex(
     json_output: Annotated[bool, typer.Option("--json", help=_JSON_HELP)] = False,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
-    """Rebuild the project index from all workspace artifacts."""
+    """Rebuild SQLite from authoritative workspace artifacts."""
 
     def execute() -> None:
         target, command_overrides = _positional_or_assignment(workspace, overrides)

@@ -83,14 +83,7 @@ SQLite is a rebuildable index, projection, query layer, and future dashboard dat
 
 Scientifically or operationally important information must not exist only in SQLite.
 
-Graphoratory uses exactly one project-wide SQLite database at
-`<project_root>/index.sqlite3`. The database must be rebuildable from all workspace
-artifacts.
-
-Ordinary commands query SQLite to resolve and list entities, then derive the exact
-authoritative artifact path from semantic IDs. They must not silently enumerate filesystem
-artifacts when the index is missing or stale. Full filesystem enumeration is reserved for
-explicit reindex, recovery, and integrity operations.
+The database must be rebuildable from workspace artifacts.
 
 ### No authoritative mutable state files
 
