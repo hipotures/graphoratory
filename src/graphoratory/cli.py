@@ -690,7 +690,7 @@ def _render_baseline_evaluations(payload: dict[str, Any]) -> None:
         ]
     )
 
-    table = Table(box=None, padding=(0, 1))
+    table = Table(show_edge=False, padding=(0, 1))
     table.add_column("BASELINE")
     table.add_column("SCORE")
     table.add_column("WIDTH", justify="right")
