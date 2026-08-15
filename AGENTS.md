@@ -205,9 +205,10 @@ graphlab line create workspace=ws-a1b2c3d4
 graphlab line status ln-38aa192f
 ```
 
-Do not silently select a line when a command operates on a line.
-
-A line identifier must be explicit.
+Existing-line identity must be explicit in automated and internal execution.
+Selected manual CLI commands may omit `LINE` and use the latest line in the selected
+workspace as a visible ergonomic fallback. This convenience is derived from immutable
+artifacts and must not introduce active-line state.
 
 Keep CLI handlers thin. Application logic belongs in reusable Python services.
 

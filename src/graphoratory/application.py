@@ -15,10 +15,12 @@ from graphoratory.artifacts import (
     ensure_workspace_alias,
     normalize_workspace_manifests,
     publish_directory,
+    resolve_latest_line,
     resolve_line,
     resolve_workspace,
     temporary_directory,
     validate_workspace_name,
+    workspace_artifact,
     workspace_artifacts,
 )
 from graphoratory.config import AppConfig
@@ -66,10 +68,20 @@ class WorkspaceStatus:
 class LineStatus:
     identifier: Identifier
     workspace: Identifier
+    workspace_name: str | None
     graph_count: int
     created_at: str
     phase: str
     database_state: str
+    selected_latest: bool
+
+
+@dataclass(frozen=True, slots=True)
+class CommandLineSelection:
+    identifier: Identifier
+    line_path: Path
+    workspace: WorkspaceArtifact
+    selected_latest: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -269,15 +281,18 @@ def get_workspace_status(
     )
 
 
-def get_line_status(config: AppConfig, line_value: str) -> LineStatus:
-    identifier, line_path, workspace_path = resolve_line(config.workspace.root, line_value)
-    manifest = read_json(line_path / "manifest.json")
-    workspace_manifest = read_json(workspace_path / "manifest.json")
+def get_line_status(
+    config: AppConfig,
+    line_value: str | None = None,
+    workspace_value: str | None = None,
+) -> LineStatus:
+    selection = resolve_line_for_command(config, line_value, workspace_value)
+    workspace_path = selection.workspace.path
+    manifest = read_json(selection.line_path / "manifest.json")
     graphs_manifest = read_json(workspace_path / "graphs" / "manifest.json")
     selected = list(manifest["graph_hashes"])
     if not set(selected).issubset(set(graphs_manifest["graph_hashes"])):
         raise ArtifactError("line manifest references graphs absent from its workspace")
-    workspace = Identifier(ObjectType.WORKSPACE, str(workspace_manifest["workspace_hash"]))
     counts = projection_counts(database_path(workspace_path))
     database_state = (
         "indexed"
@@ -285,12 +300,53 @@ def get_line_status(config: AppConfig, line_value: str) -> LineStatus:
         else "needs reindex"
     )
     return LineStatus(
-        identifier=identifier,
-        workspace=workspace,
+        identifier=selection.identifier,
+        workspace=selection.workspace.identifier,
+        workspace_name=selection.workspace.name,
         graph_count=len(selected),
         created_at=str(manifest["created_at"]),
         phase="ready for policy generation",
         database_state=database_state,
+        selected_latest=selection.selected_latest,
+    )
+
+
+def resolve_line_for_command(
+    config: AppConfig,
+    explicit_line: str | None,
+    workspace_value: str | None = None,
+) -> CommandLineSelection:
+    if explicit_line is None:
+        workspace = _selected_workspace(config, workspace_value)
+        line = resolve_latest_line(workspace)
+        return CommandLineSelection(
+            line.identifier,
+            line.path,
+            workspace,
+            selected_latest=True,
+        )
+
+    identifier, line_path, workspace_path = resolve_line(
+        config.workspace.root,
+        explicit_line,
+    )
+    workspace = workspace_artifact(workspace_path)
+    workspace_context = (
+        workspace_value if workspace_value is not None else config.workspace.active
+    )
+    if workspace_context is not None:
+        selected_workspace = _selected_workspace(config, workspace_value)
+        if workspace.identifier != selected_workspace.identifier:
+            label = selected_workspace.name or selected_workspace.identifier.display
+            raise ArtifactError(
+                f"line {identifier.display} does not belong to workspace {label}"
+            )
+        workspace = selected_workspace
+    return CommandLineSelection(
+        identifier,
+        line_path,
+        workspace,
+        selected_latest=False,
     )
 
 

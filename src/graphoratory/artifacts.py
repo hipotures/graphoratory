@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,14 @@ class WorkspaceArtifact:
     path: Path
 
 
+@dataclass(frozen=True, slots=True)
+class LineArtifact:
+    identifier: Identifier
+    workspace: Identifier
+    created_at: datetime
+    path: Path
+
+
 def workspace_directories(root: Path) -> Iterator[Path]:
     if not root.exists():
         return
@@ -36,7 +45,7 @@ def workspace_directories(root: Path) -> Iterator[Path]:
 
 
 def workspace_artifacts(root: Path) -> list[WorkspaceArtifact]:
-    return [_workspace_artifact(path) for path in workspace_directories(root)]
+    return [workspace_artifact(path) for path in workspace_directories(root)]
 
 
 def resolve_workspace(root: Path, value: str) -> WorkspaceArtifact:
@@ -176,6 +185,16 @@ def resolve_line(root: Path, value: str) -> tuple[Identifier, Path, Path]:
     raise AssertionError("resolved line has no path")
 
 
+def resolve_latest_line(workspace: WorkspaceArtifact) -> LineArtifact:
+    candidates = _line_artifacts(workspace)
+    if not candidates:
+        label = workspace.name or workspace.identifier.display
+        raise ArtifactError(
+            f"workspace {label} has no lines; create one with `graphlab line create`"
+        )
+    return max(candidates, key=lambda line: (line.created_at, line.identifier.digest))
+
+
 def temporary_directory(parent: Path, prefix: str) -> Path:
     parent.mkdir(parents=True, exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=f".{prefix}.", dir=parent))
@@ -202,7 +221,7 @@ def _manifest_hash(path: Path, field: str, kind: str) -> str:
     return value
 
 
-def _workspace_artifact(path: Path) -> WorkspaceArtifact:
+def workspace_artifact(path: Path) -> WorkspaceArtifact:
     manifest_path = path / WORKSPACE_MANIFEST
     try:
         manifest = read_json(manifest_path)
@@ -217,6 +236,48 @@ def _workspace_artifact(path: Path) -> WorkspaceArtifact:
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise ArtifactError(f"invalid workspace manifest: {manifest_path}") from exc
     return WorkspaceArtifact(identifier, raw_name, created_at, path)
+
+
+def _line_artifacts(workspace: WorkspaceArtifact) -> list[LineArtifact]:
+    lines_path = workspace.path / "lines"
+    if not lines_path.exists():
+        return []
+    artifacts: list[LineArtifact] = []
+    for line_path in sorted(lines_path.iterdir()):
+        manifest_path = line_path / WORKSPACE_MANIFEST
+        if (
+            not line_path.is_dir()
+            or not line_path.name.startswith("ln-")
+            or not manifest_path.is_file()
+        ):
+            continue
+        try:
+            manifest = read_json(manifest_path)
+            identifier = Identifier(
+                ObjectType.LINE,
+                _manifest_string(manifest, "line_hash"),
+            )
+            workspace_identifier = Identifier(
+                ObjectType.WORKSPACE,
+                _manifest_string(manifest, "workspace_hash"),
+            )
+            if workspace_identifier != workspace.identifier:
+                raise ValueError("line belongs to another workspace")
+            created_at = _parse_utc_timestamp(_manifest_string(manifest, "created_at"))
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            raise ArtifactError(f"invalid line manifest: {manifest_path}") from exc
+        artifacts.append(LineArtifact(identifier, workspace_identifier, created_at, line_path))
+    return artifacts
+
+
+def _parse_utc_timestamp(value: str) -> datetime:
+    if not value.endswith("Z"):
+        raise ValueError("timestamp must use UTC Z notation")
+    parsed = datetime.fromisoformat(f"{value[:-1]}+00:00")
+    offset = parsed.utcoffset()
+    if offset is None or offset.total_seconds() != 0:
+        raise ValueError("timestamp must be UTC")
+    return parsed
 
 
 def _manifest_string(manifest: dict[str, Any], field: str) -> str:

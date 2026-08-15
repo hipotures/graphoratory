@@ -177,22 +177,28 @@ def line_create(
 
 @line_app.command("status")
 def line_status(
-    line: Annotated[str, typer.Argument(help="Lowercase typed line ID.", metavar="LINE")],
+    line: Annotated[
+        str | None,
+        typer.Argument(help="Lowercase typed line ID.", metavar="LINE"),
+    ] = None,
     overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
 ) -> None:
-    """Show read-only status for an explicitly selected line."""
+    """Show status for a line, defaulting to the latest in the selected workspace."""
 
     def execute() -> None:
         target, command_overrides = _positional_or_assignment(line, overrides)
-        config, operational = _command_config(command_overrides, {"line"})
+        config, operational = _command_config(command_overrides, {"line", "workspace"})
         target = _explicit_target(target, operational.pop("line", None), "line")
-        if target is None:
-            raise ValueError("no line selected; pass a lowercase typed line ID")
+        workspace = operational.pop("workspace", None)
         _reject_operational(operational)
-        status = get_line_status(config, target)
+        status = get_line_status(config, target, workspace)
+        line_label = status.identifier.display
+        if status.selected_latest:
+            workspace_label = status.workspace_name or status.workspace.display
+            line_label = f"{line_label} (latest in workspace {workspace_label})"
         _status_table(
             [
-                ("Line", status.identifier.display),
+                ("Line", line_label),
                 ("Workspace", status.workspace.display),
                 ("Graphs", str(status.graph_count)),
                 ("Created", status.created_at),

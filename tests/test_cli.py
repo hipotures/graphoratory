@@ -85,6 +85,24 @@ def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:
     assert line_status.exit_code == 0
     assert line_id in line_status.stdout
     assert workspace_id in line_status.stdout
+    assert "latest in workspace" not in line_status.stdout
+
+    latest_line_status = runner.invoke(
+        app,
+        ["line", "status", f"config={config_file}"],
+    )
+    assert latest_line_status.exit_code == 0
+    assert f"{line_id} (latest in workspace testowy)" in latest_line_status.stdout
+    assert workspace_id in latest_line_status.stdout
+
+    latest_with_workspace_override = runner.invoke(
+        app,
+        ["line", "status", "workspace=testowy", f"config={config_file}"],
+    )
+    assert latest_with_workspace_override.exit_code == 0
+    assert f"{line_id} (latest in workspace testowy)" in (
+        latest_with_workspace_override.stdout
+    )
 
     reindexed = runner.invoke(
         app,
@@ -223,11 +241,10 @@ def test_workspace_init_rejects_unsafe_names(config_file: Path, name: str) -> No
     assert "workspace name must be" in result.stderr
 
 
-def test_line_status_requires_an_explicit_line() -> None:
-    result = runner.invoke(app, ["line", "status"])
+def test_line_status_without_a_line_requires_a_workspace(config_file: Path) -> None:
+    result = runner.invoke(app, ["line", "status", f"config={config_file}"])
     assert result.exit_code == 2
-    assert "Missing argument" in result.stderr
-    assert "LINE" in result.stderr
+    assert "no workspace selected" in result.stderr
 
 
 def _set_active_workspace(path: Path, value: str) -> None:

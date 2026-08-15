@@ -21,7 +21,7 @@ The implemented operations are:
 - rebuild a workspace SQLite index from authoritative artifacts;
 - generate and persist one graph corpus using a concrete generator or weighted mix;
 - create a line with a fixed graph subset;
-- show read-only status for an explicitly selected line;
+- show read-only status for an explicit line or the latest line in the selected workspace;
 - resolve lowercase typed workspace, line, and graph IDs;
 - index workspace, graph, line, and line-membership data in SQLite;
 - keep filesystem manifests and graph data authoritative;
@@ -125,7 +125,7 @@ graphlab workspace status [WORKSPACE] [key=value ...]
 graphlab workspace reindex [WORKSPACE] [key=value ...]
 graphlab graph generate [key=value ...]
 graphlab line create [key=value ...]
-graphlab line status LINE [key=value ...]
+graphlab line status [LINE] [key=value ...]
 ```
 
 Examples:
@@ -140,7 +140,9 @@ graphlab graph generate
 graphlab graph generate workspace=test01 graphs.workspace_graph_count=100
 graphlab line create
 graphlab line create workspace=test01 graphs.line_graph_count=20
+graphlab line status
 graphlab line status ln-38aa192f
+graphlab line status workspace=test01
 graphlab workspace reindex
 ```
 
@@ -160,8 +162,29 @@ An explicit target takes precedence over `workspace.active`.
 
 The implementation never guesses the first, latest, oldest, or only workspace.
 
-`line status` always requires an explicit lowercase typed line ID. There is no active-line
-setting and no implicit line selection.
+## 4.1 Implicit latest-line selection for manual commands
+
+`line status` accepts an optional lowercase typed line ID. Its selection precedence is:
+
+```text
+explicit LINE
+→ latest line in the selected workspace
+→ error if the workspace has no lines
+```
+
+Without `LINE`, the workspace is selected by the ordinary explicit `workspace=...` then
+`workspace.active` precedence. Latest means the greatest parsed UTC `created_at` timestamp
+from immutable line manifests. An exact timestamp tie is resolved by descending full line
+hash. Directory order, filesystem timestamps, SQLite insertion order, and line-ID
+lexicographic order do not determine recency.
+
+This is a visible convenience for interactive CLI use: output labels an implicit choice as
+`latest in workspace NAME`. There is no `active_line`, line configuration section, current
+line file, or mutable selection state. SQLite is not required for latest-line resolution.
+Automated and internal execution should continue to pass a concrete line ID.
+
+When an explicit line is used together with configured or explicit workspace context, the
+line must belong to that workspace. A mismatch fails instead of switching workspaces.
 
 ## 5. Workspace names and filesystem layout
 

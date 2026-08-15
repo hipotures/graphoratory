@@ -16,12 +16,14 @@ from graphoratory.application import (
     get_line_status,
     get_workspace_status,
     reindex_workspace,
+    resolve_line_for_command,
 )
 from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE
 from graphoratory.config import AppConfig, load_config
 from graphoratory.database.core import delete_database, projection_counts
 from graphoratory.errors import ArtifactError
-from graphoratory.jsonio import read_json, write_json_atomic
+from graphoratory.identifiers import Identifier, ObjectType
+from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atomic
 
 
 def test_workspace_is_minimal_and_migrated(app_config: AppConfig) -> None:
@@ -135,6 +137,98 @@ def test_line_requires_generated_graphs(app_config: AppConfig) -> None:
         create_line(app_config, workspace.display)
 
 
+def test_line_selection_uses_latest_manifest_without_sqlite(
+    app_config: AppConfig,
+) -> None:
+    workspace = create_workspace(app_config, "latest-test")
+    workspace_path = app_config.workspace.root / workspace.display
+    older = _write_test_line(
+        workspace_path,
+        workspace,
+        "2026-08-15T19:10:00.000000Z",
+        ("a" * 64,),
+    )
+    _write_test_line(
+        workspace_path,
+        workspace,
+        "2026-08-15T20:00:12.799583Z",
+        ("b" * 64,),
+    )
+    latest = _write_test_line(
+        workspace_path,
+        workspace,
+        "2026-08-15T20:45:03.100000Z",
+        ("c" * 64,),
+    )
+    delete_database(workspace_path / DATABASE_NAME)
+
+    implicit = resolve_line_for_command(app_config, None, workspace.display)
+    explicit = resolve_line_for_command(app_config, older.display, workspace.display)
+
+    assert implicit.identifier == latest
+    assert implicit.selected_latest is True
+    assert explicit.identifier == older
+    assert explicit.selected_latest is False
+
+
+def test_latest_line_is_scoped_to_selected_workspace(
+    app_config: AppConfig,
+) -> None:
+    workspace_a = create_workspace(app_config, "workspace-a")
+    workspace_b = create_workspace(app_config, "workspace-b")
+    line_a = _write_test_line(
+        app_config.workspace.root / workspace_a.display,
+        workspace_a,
+        "2026-08-15T20:00:00.000000Z",
+        ("a" * 64,),
+    )
+    line_b = _write_test_line(
+        app_config.workspace.root / workspace_b.display,
+        workspace_b,
+        "2026-08-15T21:00:00.000000Z",
+        ("b" * 64,),
+    )
+
+    selected = resolve_line_for_command(app_config, None, "workspace-a")
+
+    assert selected.identifier == line_a
+    assert selected.identifier != line_b
+    with pytest.raises(ArtifactError, match="does not belong to workspace workspace-a"):
+        resolve_line_for_command(app_config, line_b.display, "workspace-a")
+
+
+def test_latest_line_tie_uses_descending_full_hash(app_config: AppConfig) -> None:
+    workspace = create_workspace(app_config, "tie-test")
+    workspace_path = app_config.workspace.root / workspace.display
+    created_at = "2026-08-15T20:00:12.799583Z"
+    first = _write_test_line(
+        workspace_path,
+        workspace,
+        created_at,
+        ("a" * 64,),
+    )
+    second = _write_test_line(
+        workspace_path,
+        workspace,
+        created_at,
+        ("b" * 64,),
+    )
+
+    selected = resolve_line_for_command(app_config, None, workspace.display)
+
+    assert selected.identifier.digest == max(first.digest, second.digest)
+
+
+def test_latest_line_requires_an_existing_line(app_config: AppConfig) -> None:
+    workspace = create_workspace(app_config, "empty")
+
+    with pytest.raises(
+        ArtifactError,
+        match=r"workspace empty has no lines; create one with `graphlab line create`",
+    ):
+        resolve_line_for_command(app_config, None, workspace.display)
+
+
 def test_workspace_names_are_unique_and_safe(app_config: AppConfig) -> None:
     create_workspace(app_config, "testowy")
     with pytest.raises(ArtifactError, match="duplicate workspace name"):
@@ -220,6 +314,10 @@ def test_full_workflow_and_reindex_from_artifacts(app_config: AppConfig) -> None
     inspection = get_workspace_status(app_config, workspace.display)
     assert inspection.database_state == "needs reindex"
     assert not database.exists()
+    latest_status = get_line_status(app_config, None, workspace.display)
+    assert latest_status.identifier == line
+    assert latest_status.selected_latest is True
+    assert latest_status.database_state == "needs reindex"
 
     reindex_workspace(app_config, workspace.display)
     assert alias.is_symlink()
@@ -417,3 +515,31 @@ def _backup_database(source: Path, destination: Path) -> None:
     finally:
         destination_connection.close()
         source_connection.close()
+
+
+def _write_test_line(
+    workspace_path: Path,
+    workspace: Identifier,
+    created_at: str,
+    graph_hashes: tuple[str, ...],
+) -> Identifier:
+    identity_payload = {
+        "workspace_hash": workspace.digest,
+        "created_at": created_at,
+        "graph_hashes": list(graph_hashes),
+    }
+    identifier = Identifier.from_bytes(
+        ObjectType.LINE,
+        canonical_json_bytes(identity_payload),
+    )
+    line_path = workspace_path / "lines" / identifier.display
+    line_path.mkdir()
+    write_json_atomic(
+        line_path / "manifest.json",
+        {
+            "artifact_type": "line",
+            "line_hash": identifier.digest,
+            **identity_payload,
+        },
+    )
+    return identifier
