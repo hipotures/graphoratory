@@ -48,7 +48,7 @@ def test_workspace_is_minimal_and_migrated(app_config: AppConfig) -> None:
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == ("0003_portable_persistence")
+            ).scalar_one() == ("0004_graph_corpus_generator")
             row = connection.execute(
                 text(
                     "SELECT workspace_name, workspace_hash, workspace_short "
@@ -107,7 +107,7 @@ def test_portable_persistence_migration_upgrades_the_initial_schema(tmp_path: Pa
         with engine.connect() as connection:
             assert connection.execute(
                 text("SELECT version_num FROM alembic_version")
-            ).scalar_one() == "0003_portable_persistence"
+            ).scalar_one() == "0004_graph_corpus_generator"
             assert connection.execute(
                 text("SELECT workspace_name FROM workspaces")
             ).scalar_one() is None
@@ -119,6 +119,12 @@ def test_portable_persistence_migration_upgrades_the_initial_schema(tmp_path: Pa
             }
             assert "manifest_path" not in workspace_columns
             assert "manifest_path" not in line_columns
+            assert connection.execute(
+                text(
+                    "SELECT COUNT(*) FROM sqlite_master "
+                    "WHERE type = 'table' AND name = 'graph_corpora'"
+                )
+            ).scalar_one() == 1
     finally:
         engine.dispose()
 
@@ -161,6 +167,12 @@ def test_full_workflow_and_reindex_from_artifacts(app_config: AppConfig) -> None
     graphs_manifest = read_json(graphs_path / "manifest.json")
     assert len(graphs_manifest["graph_hashes"]) == app_config.graphs.workspace_graph_count
     assert len(set(graphs_manifest["graph_hashes"])) == app_config.graphs.workspace_graph_count
+    assert graphs_manifest["generation"]["generator"] == app_config.graphs.generator
+    assert graphs_manifest["accepted_distinct_graphs"] == generated.graph_count
+    assert sum(graphs_manifest["accepted_by_generator"].values()) == generated.graph_count
+    assert graphs_manifest["attempted_candidates"] == generated.attempts
+    assert graphs_manifest["rejected_invalid_candidates"] == generated.rejected
+    assert graphs_manifest["duplicate_candidates"] == generated.duplicates
 
     line_manifest = read_json(line_path / "manifest.json")
     selected = line_manifest["graph_hashes"]
@@ -194,6 +206,7 @@ def test_full_workflow_and_reindex_from_artifacts(app_config: AppConfig) -> None
     expected = projection_counts(database)
     assert expected == {
         "workspaces": 1,
+        "graph_corpora": 1,
         "graphs": app_config.graphs.workspace_graph_count,
         "lines": 1,
         "line_graphs": app_config.graphs.line_graph_count,
@@ -223,6 +236,12 @@ def test_full_workflow_and_reindex_from_artifacts(app_config: AppConfig) -> None
                 )
             ).one()
             corpus_count = connection.execute(text("SELECT COUNT(*) FROM graphs")).scalar_one()
+            corpus_row = connection.execute(
+                text(
+                    "SELECT generator, requested_graph_count, actual_graph_count "
+                    "FROM graph_corpora"
+                )
+            ).one()
             line_row = connection.execute(
                 text("SELECT line_hash, workspace_hash FROM lines")
             ).one()
@@ -231,6 +250,11 @@ def test_full_workflow_and_reindex_from_artifacts(app_config: AppConfig) -> None
             ).scalar_one()
         assert workspace_row == ("testowy", workspace.digest, workspace.short)
         assert corpus_count == app_config.graphs.workspace_graph_count
+        assert corpus_row == (
+            app_config.graphs.generator,
+            app_config.graphs.workspace_graph_count,
+            app_config.graphs.workspace_graph_count,
+        )
         assert line_row == (line.digest, workspace.digest)
         assert membership_count == app_config.graphs.line_graph_count
     finally:
@@ -271,6 +295,9 @@ def test_reindex_normalizes_legacy_manifest_metadata(app_config: AppConfig) -> N
     workspace_graphs = workspace_manifest["creation_config"]["graphs"]
     workspace_graphs["count"] = workspace_graphs.pop("workspace_graph_count")
     workspace_graphs["line_sample_size"] = workspace_graphs.pop("line_graph_count")
+    workspace_graphs["mode"] = "unrestricted_min_degree_3"
+    del workspace_graphs["generator"]
+    workspace_graphs["order_distribution"] = "round_robin"
     workspace_manifest["config_source"] = str(app_config.source)
     workspace_manifest["creation_config"]["workspace"] = {
         "root": str(app_config.workspace.root)
@@ -282,6 +309,14 @@ def test_reindex_normalizes_legacy_manifest_metadata(app_config: AppConfig) -> N
     generation = graphs_manifest["generation"]
     generation["count"] = generation.pop("workspace_graph_count")
     generation["line_sample_size"] = generation.pop("line_graph_count")
+    generation["mode"] = "unrestricted_min_degree_3"
+    del generation["generator"]
+    generation["order_distribution"] = "round_robin"
+    graphs_manifest["generation_attempts"] = graphs_manifest.pop("attempted_candidates")
+    graphs_manifest["duplicate_attempts"] = graphs_manifest.pop("duplicate_candidates")
+    del graphs_manifest["rejected_invalid_candidates"]
+    del graphs_manifest["accepted_distinct_graphs"]
+    del graphs_manifest["accepted_by_generator"]
     write_json_atomic(graphs_manifest_path, graphs_manifest)
 
     reindex_workspace(app_config, workspace.display)
@@ -302,6 +337,16 @@ def test_reindex_normalizes_legacy_manifest_metadata(app_config: AppConfig) -> N
     assert "line_sample_size" not in workspace_manifest["creation_config"]["graphs"]
     assert "count" not in graphs_manifest["generation"]
     assert "line_sample_size" not in graphs_manifest["generation"]
+    assert workspace_manifest["creation_config"]["graphs"]["generator"] == (
+        "cycle_matching_stub_pairing"
+    )
+    assert graphs_manifest["generation"]["generator"] == "cycle_matching_stub_pairing"
+    assert graphs_manifest["generation"]["order_distribution"] == "accepted_round_robin"
+    assert graphs_manifest["accepted_distinct_graphs"] == graphs_manifest["graph_count"]
+    assert graphs_manifest["rejected_invalid_candidates"] == 0
+    assert graphs_manifest["accepted_by_generator"] == {
+        "cycle_matching_stub_pairing": graphs_manifest["graph_count"]
+    }
 
 
 def test_workspace_survives_relocation_and_reindex(

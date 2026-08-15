@@ -5,12 +5,15 @@ import hashlib
 import json
 import math
 from collections import deque
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from random import Random
 from typing import Any
 
+import networkx as nx
+
+from graphoratory.config import GraphConfig
 from graphoratory.jsonio import canonical_json_bytes
 
 Edge = tuple[int, int]
@@ -67,7 +70,16 @@ class Graph:
                     queue.append(neighbour)
         return len(seen) == self.order
 
-    def validate_scientific_invariants(self) -> None:
+    def validate_scientific_invariants(
+        self,
+        *,
+        min_order: int | None = None,
+        max_order: int | None = None,
+    ) -> None:
+        if min_order is not None and self.order < min_order:
+            raise ValueError("generated graph order is below the configured minimum")
+        if max_order is not None and self.order > max_order:
+            raise ValueError("generated graph order is above the configured maximum")
         if not self.is_connected():
             raise ValueError("generated graph is disconnected")
         if min(self.degrees(), default=0) < 3:
@@ -78,56 +90,86 @@ class Graph:
 class GeneratedGraphs:
     graphs: tuple[Graph, ...]
     attempts: int
+    rejected: int
     duplicates: int
+    accepted_by_generator: tuple[tuple[str, int], ...]
+
+
+class CandidateRejected(RuntimeError):
+    """A sampled candidate could not satisfy its generator and common constraints."""
+
+
+GeneratorFunction = Callable[[int, Random, GraphConfig], Graph]
 
 
 def generate_graphs(
-    *,
-    count: int,
-    min_order: int,
-    max_order: int,
-    seed: int,
+    config: GraphConfig,
 ) -> GeneratedGraphs:
     graphs: list[Graph] = []
     hashes: set[str] = set()
     attempts = 0
+    rejected = 0
     duplicates = 0
-    maximum_attempts = max(1_000, count * 100)
-    order_count = max_order - min_order + 1
+    accepted = {name: 0 for name in GENERATORS}
+    maximum_attempts = max(1_000, config.workspace_graph_count * 100)
 
-    while len(graphs) < count and attempts < maximum_attempts:
-        order = min_order + (len(graphs) % order_count)
-        derived_seed = _derived_seed(seed, attempts, order)
+    while len(graphs) < config.workspace_graph_count and attempts < maximum_attempts:
+        rng = Random(_derived_seed(config.seed, attempts))
         attempts += 1
+        order = rng.randint(config.min_order, config.max_order)
+        generator_name = _select_generator(config, rng)
         try:
-            graph = generate_seed_graph(order, Random(derived_seed))
-        except RuntimeError:
+            graph = GENERATORS[generator_name](order, rng, config)
+            graph.validate_scientific_invariants(
+                min_order=config.min_order,
+                max_order=config.max_order,
+            )
+        except (CandidateRejected, ValueError):
+            rejected += 1
             continue
-        graph.validate_scientific_invariants()
         if graph.graph_hash in hashes:
             duplicates += 1
             continue
         hashes.add(graph.graph_hash)
         graphs.append(graph)
+        accepted[generator_name] += 1
 
-    if len(graphs) != count:
+    if len(graphs) != config.workspace_graph_count:
         raise RuntimeError(
-            f"generated only {len(graphs)} distinct graphs after {attempts} attempts"
+            f"generated only {len(graphs)} distinct graphs after {attempts} attempts "
+            f"({rejected} invalid candidates, {duplicates} duplicates)"
         )
-    return GeneratedGraphs(tuple(graphs), attempts, duplicates)
+    return GeneratedGraphs(
+        graphs=tuple(graphs),
+        attempts=attempts,
+        rejected=rejected,
+        duplicates=duplicates,
+        accepted_by_generator=tuple(
+            (name, accepted[name])
+            for name in (
+                config.mixed.generators
+                if config.generator == "mixed"
+                else (config.generator,)
+            )
+        ),
+    )
 
 
-def generate_seed_graph(order: int, rng: Random) -> Graph:
+def _generate_cycle_matching_stub_pairing(
+    order: int,
+    rng: Random,
+    _config: GraphConfig,
+) -> Graph:
     if order < 4:
-        raise ValueError("order must be at least 4")
+        raise CandidateRejected("order must be at least 4")
     if order % 2:
-        return _generate_mixed_degree(order, rng)
-    return _generate_cubic(order, rng)
+        return _generate_stub_pairing(order, rng)
+    return _generate_cycle_matching(order, rng)
 
 
-def _generate_mixed_degree(order: int, rng: Random) -> Graph:
+def _generate_stub_pairing(order: int, rng: Random) -> Graph:
     if order < 5:
-        raise ValueError("mixed-degree graphs require order at least 5")
+        raise CandidateRejected("stub-pairing graphs require order at least 5")
     high_count = min(1, max(1, math.floor(3 * order / 7)))
     degrees = [4] * high_count + [3] * (order - high_count)
     if sum(degrees) % 2:
@@ -161,10 +203,10 @@ def _generate_mixed_degree(order: int, rng: Random) -> Graph:
                 for vertex in range(order)
             ):
                 return graph
-    raise RuntimeError("failed to generate a mixed-degree graph within retry budget")
+    raise CandidateRejected("failed to generate a stub-pairing graph within retry budget")
 
 
-def _generate_cubic(order: int, rng: Random) -> Graph:
+def _generate_cycle_matching(order: int, rng: Random) -> Graph:
     cycle = {(min(u, (u + 1) % order), max(u, (u + 1) % order)) for u in range(order)}
     for _ in range(200):
         vertices = list(range(order))
@@ -181,12 +223,99 @@ def _generate_cubic(order: int, rng: Random) -> Graph:
             matching.add((min(u, v), max(u, v)))
         if not vertices and len(matching) == order // 2:
             return Graph.from_edges(order, cycle | matching)
-    raise RuntimeError("failed to generate a cubic graph within retry budget")
+    raise CandidateRejected("failed to generate a cycle-matching graph within retry budget")
 
 
-def _derived_seed(root_seed: int, attempt: int, order: int) -> int:
-    digest = hashlib.sha256(f"{root_seed}:{attempt}:{order}".encode()).digest()
+def _generate_random_regular(order: int, rng: Random, config: GraphConfig) -> Graph:
+    settings = config.random_regular
+    feasible_degrees = [
+        degree
+        for degree in range(settings.degree_min, settings.degree_max + 1)
+        if degree < order and (order * degree) % 2 == 0
+    ]
+    if not feasible_degrees:
+        raise CandidateRejected("no feasible regular degree for sampled order")
+    degree = rng.choice(feasible_degrees)
+    try:
+        generated = nx.random_regular_graph(degree, order, seed=rng)
+    except nx.NetworkXError as exc:
+        raise CandidateRejected("random regular construction failed") from exc
+    return _from_networkx(generated)
+
+
+def _generate_erdos_renyi_rejection(
+    order: int,
+    rng: Random,
+    config: GraphConfig,
+) -> Graph:
+    settings = config.erdos_renyi_rejection
+    maximum = min(settings.expected_degree_max, float(order - 1))
+    if settings.expected_degree_min > maximum:
+        raise CandidateRejected("no feasible expected degree for sampled order")
+    expected_degree = rng.uniform(settings.expected_degree_min, maximum)
+    probability = expected_degree / (order - 1)
+    generated = nx.fast_gnp_random_graph(order, probability, seed=rng, directed=False)
+    return _from_networkx(generated)
+
+
+def _generate_degree_sequence_rejection(
+    order: int,
+    rng: Random,
+    config: GraphConfig,
+) -> Graph:
+    settings = config.degree_sequence_rejection
+    maximum = min(settings.degree_max, order - 1)
+    if settings.degree_min > maximum:
+        raise CandidateRejected("no feasible degree sequence for sampled order")
+    sequence = [rng.randint(settings.degree_min, maximum) for _ in range(order)]
+    if len(set(sequence)) < 2 or sum(sequence) % 2:
+        raise CandidateRejected("sampled degree sequence is not heterogeneous with even sum")
+    if not nx.is_graphical(sequence, method="eg"):
+        raise CandidateRejected("sampled degree sequence is not graphical")
+    generated = nx.havel_hakimi_graph(sequence)
+    if not nx.is_connected(generated):
+        raise CandidateRejected("degree-sequence realization is disconnected")
+    swaps = max(1, generated.number_of_edges())
+    try:
+        nx.double_edge_swap(
+            generated,
+            nswap=swaps,
+            max_tries=swaps * 20,
+            seed=rng.getrandbits(64),
+        )
+    except nx.NetworkXAlgorithmError as exc:
+        raise CandidateRejected("degree-sequence randomization failed") from exc
+    return _from_networkx(generated)
+
+
+GENERATORS: dict[str, GeneratorFunction] = {
+    "cycle_matching_stub_pairing": _generate_cycle_matching_stub_pairing,
+    "random_regular": _generate_random_regular,
+    "erdos_renyi_rejection": _generate_erdos_renyi_rejection,
+    "degree_sequence_rejection": _generate_degree_sequence_rejection,
+}
+
+
+def _select_generator(config: GraphConfig, rng: Random) -> str:
+    if config.generator != "mixed":
+        return config.generator
+    return rng.choices(
+        config.mixed.generators,
+        weights=config.mixed.weights,
+        k=1,
+    )[0]
+
+
+def _derived_seed(root_seed: int, attempt: int) -> int:
+    digest = hashlib.sha256(f"{root_seed}:{attempt}".encode()).digest()
     return int.from_bytes(digest[:8], "big")
+
+
+def _from_networkx(graph: nx.Graph[Any]) -> Graph:
+    return Graph.from_edges(
+        graph.number_of_nodes(),
+        ((int(u), int(v)) for u, v in graph.edges()),
+    )
 
 
 def _adjacency(graph: Graph) -> tuple[frozenset[int], ...]:

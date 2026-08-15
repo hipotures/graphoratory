@@ -11,6 +11,7 @@ requires-python = ">=3.12,<3.13"
 license = { file = "LICENSE" }
 dependencies = [
   "alembic>=1.16,<2",
+  "networkx>=3.4,<4",
   "rich>=13.9,<15",
   "sqlalchemy>=2.0,<3",
   "typer>=0.16,<1",
@@ -24,6 +25,7 @@ dev = [
   "mypy>=1.15,<2",
   "pytest>=8.3,<9",
   "ruff>=0.11,<1",
+  "types-networkx>=3.4,<4",
 ]
 
 [tool.hatch.build.targets.wheel]

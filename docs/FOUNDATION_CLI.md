@@ -19,7 +19,7 @@ The implemented operations are:
 - list workspace names, canonical IDs, creation times, and the configured active workspace;
 - show read-only workspace status;
 - rebuild a workspace SQLite index from authoritative artifacts;
-- generate and persist one graph corpus in a workspace;
+- generate and persist one graph corpus using a concrete generator or weighted mix;
 - create a line with a fixed graph subset;
 - show read-only status for an explicitly selected line;
 - resolve lowercase typed workspace, line, and graph IDs;
@@ -42,12 +42,33 @@ root = "workspaces"
 active = "test01"
 
 [graphs]
-mode = "unrestricted_min_degree_3"
+generator = "mixed"
 workspace_graph_count = 1000
 line_graph_count = 100
 min_order = 22
 max_order = 63
 seed = 401
+
+[graphs.random_regular]
+degree_min = 3
+degree_max = 6
+
+[graphs.erdos_renyi_rejection]
+expected_degree_min = 6.0
+expected_degree_max = 10.0
+
+[graphs.degree_sequence_rejection]
+degree_min = 3
+degree_max = 10
+
+[graphs.mixed]
+generators = [
+    "cycle_matching_stub_pairing",
+    "random_regular",
+    "erdos_renyi_rejection",
+    "degree_sequence_rejection",
+]
+weights = [1.0, 1.0, 1.0, 1.0]
 ```
 
 The keys mean:
@@ -55,14 +76,41 @@ The keys mean:
 - `workspace.root`: workspace storage directory, resolved relative to the configuration file;
 - `workspace.active`: optional workspace name or lowercase typed workspace ID used by
   commands that need a workspace;
-- `graphs.mode`: implemented graph-generation mode;
+- `graphs.generator`: concrete generator name or `mixed`;
 - `graphs.workspace_graph_count`: number of graphs persisted in the workspace corpus;
 - `graphs.line_graph_count`: number of corpus graphs selected for a new line;
 - `graphs.min_order` and `graphs.max_order`: inclusive graph-order range;
-- `graphs.seed`: non-negative generation seed.
+- `graphs.seed`: non-negative root generation seed;
+- `graphs.random_regular.degree_min` and `degree_max`: allowed regular degrees;
+- `graphs.erdos_renyi_rejection.expected_degree_min` and `expected_degree_max`:
+  expected-degree interval converted to `p = expected_degree / (n - 1)`;
+- `graphs.degree_sequence_rejection.degree_min` and `degree_max`: target degree interval;
+- `graphs.mixed.generators` and `weights`: concrete generator names and matching positive
+  dispatcher weights.
 
-Unknown sections, keys, and override keys fail. The obsolete top-level `active_workspace`,
-`graphs.count`, and `graphs.line_sample_size` keys are not accepted.
+The implemented generator names are:
+
+```text
+cycle_matching_stub_pairing
+random_regular
+erdos_renyi_rejection
+degree_sequence_rejection
+mixed
+```
+
+`cycle_matching_stub_pairing` preserves the original Graphoratory/HEG algorithm: even
+orders use a Hamiltonian cycle plus a random non-cycle perfect matching; odd orders use
+bounded greedy stub pairing for the degree sequence `(4, 3, ..., 3)`.
+`random_regular` uses NetworkX simple random regular generation and rejects disconnected
+results. `erdos_renyi_rejection` draws an unmodified `G(n,p)` candidate and rejects it
+unless it satisfies the common invariant. `degree_sequence_rejection` samples a
+heterogeneous target degree sequence, checks graphicality, realizes it with Havel–Hakimi,
+applies degree-preserving double-edge swaps, and rejects invalid results. `mixed` only
+selects among configured concrete generators.
+
+Unknown sections, keys, generator names, and override keys fail. The obsolete top-level
+`active_workspace`, `graphs.mode`, `graphs.count`, and `graphs.line_sample_size` keys are
+not accepted by configuration loading.
 
 ## 3. Commands
 
@@ -181,8 +229,18 @@ Filesystem artifacts are authoritative. SQLite is a rebuildable projection.
 
 The workspace manifest stores its semantic identity, human name, creation time, and graph
 creation configuration. It does not store the absolute configuration path or workspace-root
-path. Graph manifests store generation parameters and graph hashes. Line manifests store the
-line hash, full workspace hash, creation time, and selected full graph hashes.
+path. Graph manifests store the selected generator, generator parameters, root seed, order
+range, requested and actual distinct counts, ordered graph hashes, attempted/rejected/
+duplicate candidate counts, and accepted counts per concrete generator. Line manifests
+store the line hash, full workspace hash, creation time, and selected full graph hashes.
+
+For every candidate attempt, Graphoratory derives a local RNG seed from SHA-256 of the root
+seed and attempt number. That RNG samples the candidate order uniformly over the inclusive
+range, selects a mixed component when needed, and drives candidate construction. The same
+supported software version and effective generation configuration therefore reproduce the
+same ordered graph hashes. Invalid and duplicate candidates do not count toward
+`workspace_graph_count`; generation fails after
+`max(1000, workspace_graph_count * 100)` attempts if the distinct target cannot be reached.
 
 Persisted relationships use hashes instead of filesystem paths. No authoritative mutable
 state file is used. Workspace, graph, and line artifacts are published atomically.
@@ -205,6 +263,11 @@ Migration `0002_workspace_name` added the unique workspace-name projection. Migr
 and `lines`. SQLite therefore persists semantic IDs and metadata, not machine-specific
 absolute artifact paths.
 
+Migration `0004_graph_corpus_generator` adds one `graph_corpora` projection row per generated
+workspace corpus. It stores the selected generator, compact canonical JSON configuration,
+requested and actual graph counts, and aggregate attempt/rejection statistics. Reindexing
+reconstructs this row from the graph manifest.
+
 `workspace reindex` reads the workspace, graph, and line artifacts, validates their hashes and
 counts, constructs a new database, verifies SQLite integrity, and atomically replaces the old
 projection. It also removes obsolete absolute-path provenance fields from older manifests and
@@ -220,6 +283,13 @@ overrides use dotlist assignments:
 
 ```bash
 graphlab graph generate graphs.workspace_graph_count=100
+graphlab graph generate graphs.generator=random_regular
+graphlab graph generate \
+  graphs.generator=random_regular \
+  graphs.random_regular.degree_min=3 \
+  graphs.random_regular.degree_max=4
+graphlab graph generate graphs.generator=erdos_renyi_rejection
+graphlab graph generate graphs.generator=mixed
 graphlab line create graphs.line_graph_count=20
 graphlab graph generate workspace.active=test01
 graphlab graph generate workspace=test02

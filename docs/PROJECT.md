@@ -170,6 +170,17 @@ Relevant graph generation behavior should remain scientifically consistent with 
 
 Graphs must satisfy the required structural constraints, including the appropriate HEG search graph family such as connected simple undirected graphs of minimum degree at least three.
 
+The implemented corpus generator is selected by `graphs.generator`. Concrete strategies
+cover the preserved HEG cycle/matching and stub-pairing construction, random regular
+graphs, rejected Erdős–Rényi samples, and rejected heterogeneous degree-sequence
+realizations. `mixed` dispatches among concrete strategies with configured positive
+weights. Candidate orders are sampled uniformly from the inclusive configured interval.
+
+All strategies pass through one structural validator before a graph can enter a corpus.
+The immutable corpus manifest records the effective generator configuration, attempt and
+rejection counts, distinct graph hashes, and mixed-component acceptance counts. SQLite
+projects this provenance but remains rebuildable from the manifest.
+
 Each graph has a stable content hash.
 
 Initial storage may use one compressed JSON Lines file:

@@ -160,9 +160,11 @@ def graph_generate(
         _reject_operational(operational)
         result = generate_workspace_graphs(config, workspace)
         typer.echo(f"generated {result.graph_count} graphs")
-        if result.duplicates:
+        if result.rejected or result.duplicates:
             _ERROR_CONSOLE.print(
-                f"generation attempts: {result.attempts}; duplicate attempts: {result.duplicates}"
+                f"candidate attempts: {result.attempts}; "
+                f"invalid candidates: {result.rejected}; "
+                f"duplicate candidates: {result.duplicates}"
             )
 
     _run(execute)

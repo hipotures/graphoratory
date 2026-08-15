@@ -92,7 +92,7 @@ def normalize_workspace_manifests(workspace_path: Path) -> None:
     if isinstance(creation_config, dict):
         graphs = creation_config.get("graphs")
         if isinstance(graphs, dict):
-            changed = _rename_graph_count_keys(graphs) or changed
+            changed = _normalize_graph_config(graphs) or changed
     if changed:
         write_json_atomic(manifest_path, manifest)
 
@@ -100,11 +100,41 @@ def normalize_workspace_manifests(workspace_path: Path) -> None:
     if graphs_manifest_path.is_file():
         graphs_manifest = read_json(graphs_manifest_path)
         generation = graphs_manifest.get("generation")
-        if isinstance(generation, dict) and _rename_graph_count_keys(generation):
+        manifest_changed = False
+        if isinstance(generation, dict):
+            manifest_changed = _normalize_graph_config(generation)
+            generator = generation.get("generator")
+            if "generation_attempts" in graphs_manifest:
+                graphs_manifest["attempted_candidates"] = graphs_manifest.pop(
+                    "generation_attempts"
+                )
+                manifest_changed = True
+            if "duplicate_attempts" in graphs_manifest:
+                graphs_manifest["duplicate_candidates"] = graphs_manifest.pop(
+                    "duplicate_attempts"
+                )
+                manifest_changed = True
+            if "rejected_invalid_candidates" not in graphs_manifest:
+                graphs_manifest["rejected_invalid_candidates"] = 0
+                manifest_changed = True
+            if "accepted_distinct_graphs" not in graphs_manifest:
+                graphs_manifest["accepted_distinct_graphs"] = graphs_manifest.get(
+                    "graph_count", 0
+                )
+                manifest_changed = True
+            if (
+                "accepted_by_generator" not in graphs_manifest
+                and isinstance(generator, str)
+            ):
+                graphs_manifest["accepted_by_generator"] = {
+                    generator: graphs_manifest.get("graph_count", 0)
+                }
+                manifest_changed = True
+        if manifest_changed:
             write_json_atomic(graphs_manifest_path, graphs_manifest)
 
 
-def _rename_graph_count_keys(values: dict[str, object]) -> bool:
+def _normalize_graph_config(values: dict[str, object]) -> bool:
     changed = False
     for old, new in (
         ("count", "workspace_graph_count"),
@@ -113,6 +143,13 @@ def _rename_graph_count_keys(values: dict[str, object]) -> bool:
         if old in values:
             values[new] = values.pop(old)
             changed = True
+    if values.get("mode") == "unrestricted_min_degree_3":
+        values.pop("mode")
+        values["generator"] = "cycle_matching_stub_pairing"
+        changed = True
+    if values.get("order_distribution") == "round_robin":
+        values["order_distribution"] = "accepted_round_robin"
+        changed = True
     return changed
 
 

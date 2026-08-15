@@ -5,6 +5,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
 )
 
 metadata = MetaData()
@@ -30,6 +31,24 @@ graphs = Table(
     Column("graph_hash", String(64), primary_key=True),
     Column("graph_short", String(8), nullable=False),
     Column("graph_order", Integer, nullable=False),
+)
+
+graph_corpora = Table(
+    "graph_corpora",
+    metadata,
+    Column(
+        "workspace_hash",
+        String(64),
+        ForeignKey("workspaces.workspace_hash", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("generator", String, nullable=False),
+    Column("configuration_json", Text, nullable=False),
+    Column("requested_graph_count", Integer, nullable=False),
+    Column("actual_graph_count", Integer, nullable=False),
+    Column("attempted_candidates", Integer, nullable=False),
+    Column("rejected_invalid_candidates", Integer, nullable=False),
+    Column("duplicate_candidates", Integer, nullable=False),
 )
 
 lines = Table(

@@ -42,7 +42,9 @@ from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atom
 class GraphResult:
     graph_count: int
     attempts: int
+    rejected: int
     duplicates: int
+    accepted_by_generator: tuple[tuple[str, int], ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,12 +131,7 @@ def generate_workspace_graphs(
     manifest_path = graphs_path / "manifest.json"
     if manifest_path.exists():
         raise ArtifactError("workspace graphs already exist and cannot be overwritten")
-    generated = generate_graphs(
-        count=config.graphs.workspace_graph_count,
-        min_order=config.graphs.min_order,
-        max_order=config.graphs.max_order,
-        seed=config.graphs.seed,
-    )
+    generated = generate_graphs(config.graphs)
     created_at = _timestamp()
     manifest = {
         "artifact_type": "graphs",
@@ -143,8 +140,11 @@ def generate_workspace_graphs(
         "generation": _graph_config_manifest(config),
         "graph_hashes": [graph.graph_hash for graph in generated.graphs],
         "graph_count": len(generated.graphs),
-        "generation_attempts": generated.attempts,
-        "duplicate_attempts": generated.duplicates,
+        "attempted_candidates": generated.attempts,
+        "rejected_invalid_candidates": generated.rejected,
+        "duplicate_candidates": generated.duplicates,
+        "accepted_distinct_graphs": len(generated.graphs),
+        "accepted_by_generator": dict(generated.accepted_by_generator),
     }
     temporary = temporary_directory(graphs_path, "generation")
     try:
@@ -169,7 +169,13 @@ def generate_workspace_graphs(
             "graphs were published, but SQLite indexing failed; "
             f"run workspace reindex {workspace.identifier.display}"
         ) from exc
-    return GraphResult(len(generated.graphs), generated.attempts, generated.duplicates)
+    return GraphResult(
+        graph_count=len(generated.graphs),
+        attempts=generated.attempts,
+        rejected=generated.rejected,
+        duplicates=generated.duplicates,
+        accepted_by_generator=generated.accepted_by_generator,
+    )
 
 
 def create_line(
@@ -233,6 +239,7 @@ def get_workspace_status(
     graph_count = int(graphs_manifest["graph_count"]) if graphs_manifest else 0
     expected = {
         "workspaces": 1,
+        "graph_corpora": 1 if graphs_manifest else 0,
         "graphs": graph_count,
         "lines": len(line_manifests),
         "line_graphs": sum(len(line["graph_hashes"]) for line in line_manifests),
@@ -306,13 +313,33 @@ def list_workspaces(config: AppConfig) -> list[WorkspaceSummary]:
 
 def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:
     return {
-        "mode": config.graphs.mode,
+        "generator": config.graphs.generator,
         "workspace_graph_count": config.graphs.workspace_graph_count,
         "line_graph_count": config.graphs.line_graph_count,
         "min_order": config.graphs.min_order,
         "max_order": config.graphs.max_order,
         "seed": config.graphs.seed,
-        "order_distribution": "round_robin",
+        "order_distribution": "uniform_candidate_orders",
+        "random_regular": {
+            "degree_min": config.graphs.random_regular.degree_min,
+            "degree_max": config.graphs.random_regular.degree_max,
+        },
+        "erdos_renyi_rejection": {
+            "expected_degree_min": (
+                config.graphs.erdos_renyi_rejection.expected_degree_min
+            ),
+            "expected_degree_max": (
+                config.graphs.erdos_renyi_rejection.expected_degree_max
+            ),
+        },
+        "degree_sequence_rejection": {
+            "degree_min": config.graphs.degree_sequence_rejection.degree_min,
+            "degree_max": config.graphs.degree_sequence_rejection.degree_max,
+        },
+        "mixed": {
+            "generators": list(config.graphs.mixed.generators),
+            "weights": list(config.graphs.mixed.weights),
+        },
     }
 
 

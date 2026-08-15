@@ -3,9 +3,30 @@ root = "workspaces"
 active = "test01"
 
 [graphs]
-mode = "unrestricted_min_degree_3"
+generator = "mixed"
 workspace_graph_count = 1000
 line_graph_count = 100
 min_order = 22
 max_order = 63
 seed = 401
+
+[graphs.random_regular]
+degree_min = 3
+degree_max = 6
+
+[graphs.erdos_renyi_rejection]
+expected_degree_min = 6.0
+expected_degree_max = 10.0
+
+[graphs.degree_sequence_rejection]
+degree_min = 3
+degree_max = 10
+
+[graphs.mixed]
+generators = [
+    "cycle_matching_stub_pairing",
+    "random_regular",
+    "erdos_renyi_rejection",
+    "degree_sequence_rejection",
+]
+weights = [1.0, 1.0, 1.0, 1.0]

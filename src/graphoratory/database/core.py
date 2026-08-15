@@ -11,9 +11,15 @@ from sqlalchemy import Connection, Engine, create_engine, event, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE
-from graphoratory.database.schema import graphs, line_graphs, lines, workspaces
+from graphoratory.database.schema import (
+    graph_corpora,
+    graphs,
+    line_graphs,
+    lines,
+    workspaces,
+)
 from graphoratory.graphs import Graph, read_graphs_jsonl_gz
-from graphoratory.jsonio import read_json
+from graphoratory.jsonio import canonical_json_bytes, read_json
 
 
 def database_path(workspace_path: Path) -> Path:
@@ -58,6 +64,19 @@ def index_graphs(
     manifest: dict[str, Any],
     workspace_graphs: Iterable[Graph],
 ) -> None:
+    generation = manifest["generation"]
+    connection.execute(
+        graph_corpora.insert().values(
+            workspace_hash=manifest["workspace_hash"],
+            generator=generation["generator"],
+            configuration_json=canonical_json_bytes(generation).decode("utf-8"),
+            requested_graph_count=generation["workspace_graph_count"],
+            actual_graph_count=manifest["graph_count"],
+            attempted_candidates=manifest["attempted_candidates"],
+            rejected_invalid_candidates=manifest["rejected_invalid_candidates"],
+            duplicate_candidates=manifest["duplicate_candidates"],
+        )
+    )
     connection.execute(
         graphs.insert(),
         [
@@ -151,7 +170,13 @@ def projection_counts(path: Path) -> dict[str, int] | None:
         connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
             counts: dict[str, int] = {}
-            for table in ("workspaces", "graphs", "lines", "line_graphs"):
+            for table in (
+                "workspaces",
+                "graph_corpora",
+                "graphs",
+                "lines",
+                "line_graphs",
+            ):
                 row = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
                 if row is None:
                     raise sqlite3.DatabaseError(f"cannot count table {table}")

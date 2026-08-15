@@ -24,28 +24,52 @@ The default configuration is:
 ```toml
 [workspace]
 root = "workspaces"
-active = "testowy"
+active = "test01"
 
 [graphs]
-mode = "unrestricted_min_degree_3"
+generator = "mixed"
 workspace_graph_count = 1000
 line_graph_count = 100
 min_order = 22
 max_order = 63
 seed = 401
+
+[graphs.random_regular]
+degree_min = 3
+degree_max = 6
+
+[graphs.erdos_renyi_rejection]
+expected_degree_min = 6.0
+expected_degree_max = 10.0
+
+[graphs.degree_sequence_rejection]
+degree_min = 3
+degree_max = 10
+
+[graphs.mixed]
+generators = [
+    "cycle_matching_stub_pairing",
+    "random_regular",
+    "erdos_renyi_rejection",
+    "degree_sequence_rejection",
+]
+weights = [1.0, 1.0, 1.0, 1.0]
 ```
 
-Graph orders are assigned deterministically in round-robin order across the inclusive
-configured range. Per-attempt seeds are derived from the root seed, attempt number, and
-order. Even orders use HEG's cycle-plus-perfect-matching cubic construction. Odd orders
-use HEG's mixed-degree construction.
+Candidate graph orders are sampled uniformly across the inclusive configured range.
+Available generators are `cycle_matching_stub_pairing`, `random_regular`,
+`erdos_renyi_rejection`, `degree_sequence_rejection`, and the weighted `mixed`
+dispatcher. Every accepted graph is simple, undirected, connected, and has minimum
+degree at least three.
 
 ## Commands
 
 ```bash
 uv run graphlab workspace init testowy
 uv run graphlab workspace list
-uv run graphlab graph generate graphs.workspace_graph_count=20
+uv run graphlab graph generate \
+  graphs.generator=random_regular \
+  graphs.workspace_graph_count=20
 uv run graphlab workspace status
 uv run graphlab workspace status testowy
 uv run graphlab line create graphs.line_graph_count=5
