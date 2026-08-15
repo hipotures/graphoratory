@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import sqlite3
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Connection, Engine, create_engine, event, func, select, text
+from sqlalchemy import Connection, Engine, create_engine, event, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from graphoratory.artifacts import DATABASE_NAME, GRAPH_FILE
@@ -46,6 +47,7 @@ def index_workspace(connection: Connection, manifest: dict[str, Any], path: Path
         workspaces.insert().values(
             workspace_hash=manifest["workspace_hash"],
             workspace_short=str(manifest["workspace_hash"])[:8],
+            workspace_name=manifest.get("name"),
             created_at=manifest["created_at"],
             manifest_path=str(path / "manifest.json"),
         )
@@ -147,20 +149,20 @@ def delete_database(path: Path) -> None:
 def projection_counts(path: Path) -> dict[str, int] | None:
     if not path.is_file():
         return None
-    engine = make_engine(path)
     try:
-        with engine.connect() as connection:
-            return {
-                "workspaces": connection.scalar(select(func.count()).select_from(workspaces)) or 0,
-                "graphs": connection.scalar(select(func.count()).select_from(graphs)) or 0,
-                "lines": connection.scalar(select(func.count()).select_from(lines)) or 0,
-                "line_graphs": connection.scalar(select(func.count()).select_from(line_graphs))
-                or 0,
-            }
-    except Exception:
+        connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        try:
+            counts: dict[str, int] = {}
+            for table in ("workspaces", "graphs", "lines", "line_graphs"):
+                row = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
+                if row is None:
+                    raise sqlite3.DatabaseError(f"cannot count table {table}")
+                counts[table] = int(row[0])
+            return counts
+        finally:
+            connection.close()
+    except sqlite3.Error:
         return None
-    finally:
-        engine.dispose()
 
 
 def _index_lines_from_artifacts(connection: Connection, workspace_path: Path) -> None:

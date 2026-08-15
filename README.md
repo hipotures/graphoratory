@@ -15,12 +15,15 @@ uv run graphlab --help
 ```
 
 Every command loads `experiment.toml` from the current directory unless given
-`config=/path/to/file.toml`. Parameters use `key=value` overrides, including nested
-configuration such as `graphs.count=20`. Unknown keys fail.
+`config=/path/to/file.toml`. Normal command targets use positional arguments. Additional
+configuration uses `key=value` overrides, including nested settings such as
+`graphs.count=20`. Unknown keys fail.
 
 The default configuration is:
 
 ```toml
+active_workspace = "testowy"
+
 [workspace]
 root = "workspaces"
 
@@ -41,16 +44,20 @@ use HEG's mixed-degree construction.
 ## Commands
 
 ```bash
-uv run graphlab workspace init graphs.count=20
-uv run graphlab graph generate workspace=ws-xxxxxxxx graphs.count=20
-uv run graphlab workspace status workspace=ws-xxxxxxxx
-uv run graphlab line create workspace=ws-xxxxxxxx graphs.line_sample_size=5
-uv run graphlab line status line=ln-xxxxxxxx
-uv run graphlab workspace reindex workspace=ws-xxxxxxxx
+uv run graphlab workspace init testowy
+uv run graphlab workspace list
+uv run graphlab graph generate graphs.count=20
+uv run graphlab workspace status
+uv run graphlab workspace status testowy
+uv run graphlab line create graphs.line_sample_size=5
+uv run graphlab line status ln-xxxxxxxx
+uv run graphlab workspace reindex
 ```
 
-`line status` always requires an explicit line. A workspace accepts one immutable graph
-generation; a second `graph generate` fails instead of overwriting it.
+Commands that need a workspace use an explicit `workspace=<name-or-id>` first, then
+`active_workspace`; they fail rather than guessing if neither is set. `line status`
+always requires an explicit line. A workspace accepts one immutable graph generation;
+a second `graph generate` fails instead of overwriting it.
 
 Typed short IDs and artifact directory names are always lowercase:
 

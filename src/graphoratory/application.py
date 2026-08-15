@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,11 +10,14 @@ from typing import Any
 from graphoratory.artifacts import (
     DATABASE_NAME,
     GRAPH_FILE,
+    WorkspaceArtifact,
     discard_directory,
     publish_directory,
     resolve_line,
     resolve_workspace,
     temporary_directory,
+    validate_workspace_name,
+    workspace_artifacts,
 )
 from graphoratory.config import AppConfig
 from graphoratory.database.core import (
@@ -26,7 +30,7 @@ from graphoratory.database.core import (
     projection_counts,
     rebuild_database,
 )
-from graphoratory.errors import ArtifactError
+from graphoratory.errors import ArtifactError, GraphoratoryError
 from graphoratory.graphs import generate_graphs, write_graphs_jsonl_gz
 from graphoratory.identifiers import Identifier, ObjectType
 from graphoratory.jsonio import canonical_json_bytes, read_json, write_json_atomic
@@ -42,6 +46,7 @@ class GraphResult:
 @dataclass(frozen=True, slots=True)
 class WorkspaceStatus:
     identifier: Identifier
+    name: str | None
     created_at: str
     config_source: str
     graph_count: int
@@ -62,8 +67,19 @@ class LineStatus:
     database_state: str
 
 
-def create_workspace(config: AppConfig) -> Identifier:
+@dataclass(frozen=True, slots=True)
+class WorkspaceSummary:
+    identifier: Identifier
+    name: str | None
+    created_at: str
+    active: bool
+
+
+def create_workspace(config: AppConfig, name: str) -> Identifier:
+    validate_workspace_name(name)
     config.workspace.root.mkdir(parents=True, exist_ok=True)
+    if any(workspace.name == name for workspace in workspace_artifacts(config.workspace.root)):
+        raise ArtifactError(f"duplicate workspace name: {name}")
     created_at = _timestamp()
     identifier = Identifier.from_bytes(ObjectType.WORKSPACE, token_bytes(32))
     final_path = config.workspace.root / identifier.display
@@ -75,6 +91,7 @@ def create_workspace(config: AppConfig) -> Identifier:
         (temporary / "lines").mkdir()
         manifest = {
             "artifact_type": "workspace",
+            "name": name,
             "workspace_hash": identifier.digest,
             "created_at": created_at,
             "config_source": str(config.source),
@@ -98,8 +115,11 @@ def create_workspace(config: AppConfig) -> Identifier:
     return identifier
 
 
-def generate_workspace_graphs(config: AppConfig, workspace_value: str) -> GraphResult:
-    workspace, workspace_path = resolve_workspace(config.workspace.root, workspace_value)
+def generate_workspace_graphs(
+    config: AppConfig, workspace_value: str | None = None
+) -> GraphResult:
+    workspace = _selected_workspace(config, workspace_value)
+    workspace_path = workspace.path
     graphs_path = workspace_path / "graphs"
     manifest_path = graphs_path / "manifest.json"
     if manifest_path.exists():
@@ -113,7 +133,7 @@ def generate_workspace_graphs(config: AppConfig, workspace_value: str) -> GraphR
     created_at = _timestamp()
     manifest = {
         "artifact_type": "graphs",
-        "workspace_hash": workspace.digest,
+        "workspace_hash": workspace.identifier.digest,
         "created_at": created_at,
         "generation": _graph_config_manifest(config),
         "graph_hashes": [graph.graph_hash for graph in generated.graphs],
@@ -142,16 +162,17 @@ def generate_workspace_graphs(config: AppConfig, workspace_value: str) -> GraphR
     except Exception as exc:
         raise ArtifactError(
             "graphs were published, but SQLite indexing failed; "
-            f"run workspace reindex workspace={workspace.display}"
+            f"run workspace reindex {workspace.identifier.display}"
         ) from exc
     return GraphResult(len(generated.graphs), generated.attempts, generated.duplicates)
 
 
 def create_line(
     config: AppConfig,
-    workspace_value: str,
+    workspace_value: str | None = None,
 ) -> Identifier:
-    workspace, workspace_path = resolve_workspace(config.workspace.root, workspace_value)
+    workspace = _selected_workspace(config, workspace_value)
+    workspace_path = workspace.path
     graphs_manifest_path = workspace_path / "graphs" / "manifest.json"
     if not graphs_manifest_path.is_file():
         raise ArtifactError("workspace has no completed graphs; run graph generate first")
@@ -165,7 +186,7 @@ def create_line(
     selected = SystemRandom().sample(graph_hashes, sample_size)
     created_at = _timestamp()
     identity_payload = {
-        "workspace_hash": workspace.digest,
+        "workspace_hash": workspace.identifier.digest,
         "created_at": created_at,
         "graph_hashes": selected,
     }
@@ -190,13 +211,16 @@ def create_line(
     except Exception as exc:
         raise ArtifactError(
             f"line {identifier.display} was published, but SQLite indexing failed; "
-            f"run workspace reindex workspace={workspace.display}"
+            f"run workspace reindex {workspace.identifier.display}"
         ) from exc
     return identifier
 
 
-def get_workspace_status(config: AppConfig, workspace_value: str) -> WorkspaceStatus:
-    identifier, workspace_path = resolve_workspace(config.workspace.root, workspace_value)
+def get_workspace_status(
+    config: AppConfig, workspace_value: str | None = None
+) -> WorkspaceStatus:
+    workspace = _selected_workspace(config, workspace_value)
+    workspace_path = workspace.path
     manifest = read_json(workspace_path / "manifest.json")
     graphs_manifest_path = workspace_path / "graphs" / "manifest.json"
     graphs_manifest = read_json(graphs_manifest_path) if graphs_manifest_path.is_file() else None
@@ -211,7 +235,8 @@ def get_workspace_status(config: AppConfig, workspace_value: str) -> WorkspaceSt
     actual = projection_counts(database_path(workspace_path))
     database_state = "indexed" if actual == expected else "needs reindex"
     return WorkspaceStatus(
-        identifier=identifier,
+        identifier=workspace.identifier,
+        name=workspace.name,
         created_at=str(manifest["created_at"]),
         config_source=str(config.source),
         graph_count=graph_count,
@@ -248,10 +273,28 @@ def get_line_status(config: AppConfig, line_value: str) -> LineStatus:
     )
 
 
-def reindex_workspace(config: AppConfig, workspace_value: str) -> Identifier:
-    identifier, workspace_path = resolve_workspace(config.workspace.root, workspace_value)
-    rebuild_database(workspace_path)
-    return identifier
+def reindex_workspace(config: AppConfig, workspace_value: str | None = None) -> Identifier:
+    workspace = _selected_workspace(config, workspace_value)
+    rebuild_database(workspace.path)
+    return workspace.identifier
+
+
+def list_workspaces(config: AppConfig) -> list[WorkspaceSummary]:
+    active_hash: str | None = None
+    if config.active_workspace is not None:
+        with suppress(GraphoratoryError):
+            active_hash = resolve_workspace(
+                config.workspace.root, config.active_workspace
+            ).identifier.digest
+    return [
+        WorkspaceSummary(
+            identifier=workspace.identifier,
+            name=workspace.name,
+            created_at=workspace.created_at,
+            active=workspace.identifier.digest == active_hash,
+        )
+        for workspace in workspace_artifacts(config.workspace.root)
+    ]
 
 
 def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:
@@ -264,6 +307,16 @@ def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:
         "seed": config.graphs.seed,
         "order_distribution": "round_robin",
     }
+
+
+def _selected_workspace(config: AppConfig, explicit: str | None) -> WorkspaceArtifact:
+    value = explicit if explicit is not None else config.active_workspace
+    if value is None:
+        raise ArtifactError(
+            "no workspace selected; set active_workspace in experiment.toml "
+            "or pass workspace=<name-or-id>"
+        )
+    return resolve_workspace(config.workspace.root, value)
 
 
 def _timestamp() -> str:

@@ -15,6 +15,7 @@ workspaces = Table(
     metadata,
     Column("workspace_hash", String(64), primary_key=True),
     Column("workspace_short", String(8), nullable=False, unique=True),
+    Column("workspace_name", String(64), unique=True),
     Column("created_at", String, nullable=False),
     Column("manifest_path", Text, nullable=False),
 )

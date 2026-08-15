@@ -85,6 +85,10 @@ workspaces/
 
 A workspace contains durable scientific artifacts.
 
+Each workspace also has a unique human-readable name in its authoritative manifest.
+The canonical `ws-xxxxxxxx` identifier remains the filesystem directory name and
+internal identity.
+
 The workspace configuration itself is not frozen permanently.
 
 A user may modify the root configuration and deliberately create new artifacts using different parameters.
@@ -127,12 +131,16 @@ The repository root contains the default configuration.
 
 Commands use it automatically unless another config is explicitly supplied.
 
-Command-specific overrides use `key=value` syntax where practical.
+The optional top-level `active_workspace` setting selects a workspace by human name or
+typed ID for ordinary commands. An explicit `workspace=<name-or-id>` command value takes
+precedence. If neither is present, workspace operations fail rather than guessing.
+
+Command-specific configuration overrides use `key=value` syntax where practical.
 
 Example:
 
 ```bash
-graphlab workspace init graphs.count=1000
+graphlab workspace init testowy graphs.count=1000
 ```
 
 Configuration contains user decisions, not reconstructed runtime state.
@@ -374,15 +382,20 @@ Operations are hierarchical and small.
 Initial examples:
 
 ```bash
-graphlab workspace init
-graphlab workspace status workspace=ws-xxxxxxxx
-graphlab workspace reindex workspace=ws-xxxxxxxx
+graphlab workspace init testowy
+graphlab workspace list
+graphlab workspace status
+graphlab workspace status testowy
+graphlab workspace reindex
 
-graphlab graph generate workspace=ws-xxxxxxxx
+graphlab graph generate
 
-graphlab line create workspace=ws-xxxxxxxx
-graphlab line status line=ln-xxxxxxxx
+graphlab line create
+graphlab line status ln-xxxxxxxx
 ```
+
+Typer owns command groups, subcommands, positional arguments, options, and help.
+Trailing `key=value` values are a separate configuration override layer.
 
 Later commands may include:
 

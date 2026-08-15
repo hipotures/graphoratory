@@ -1,3 +1,5 @@
+active_workspace = "testowy"
+
 [workspace]
 root = "workspaces"
 

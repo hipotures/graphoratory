@@ -27,12 +27,14 @@ class GraphConfig:
 
 @dataclass(frozen=True, slots=True)
 class AppConfig:
+    active_workspace: str | None
     workspace: WorkspaceConfig
     graphs: GraphConfig
     source: Path
 
 
 _OVERRIDE_TYPES: dict[str, type[str] | type[int]] = {
+    "active_workspace": str,
     "workspace.root": str,
     "graphs.mode": str,
     "graphs.count": int,
@@ -56,6 +58,7 @@ def load_config(path: Path, overrides: list[str] | None = None) -> AppConfig:
         workspace_raw = raw["workspace"]
         graphs_raw = raw["graphs"]
         config = AppConfig(
+            active_workspace=_optional_string(raw.get("active_workspace"), "active_workspace"),
             workspace=WorkspaceConfig(root=_root_path(source, str(workspace_raw["root"]))),
             graphs=GraphConfig(
                 mode=str(graphs_raw["mode"]),
@@ -79,7 +82,7 @@ def load_config(path: Path, overrides: list[str] | None = None) -> AppConfig:
 
 
 def _validate_sections(raw: dict[str, Any]) -> None:
-    expected = {"workspace", "graphs"}
+    expected = {"active_workspace", "workspace", "graphs"}
     unknown = set(raw) - expected
     if unknown:
         raise ConfigurationError(f"unknown configuration section: {sorted(unknown)[0]}")
@@ -103,6 +106,8 @@ def _apply_override(config: AppConfig, override: str) -> AppConfig:
     value_type = _OVERRIDE_TYPES.get(key)
     if value_type is None:
         raise ConfigurationError(f"unknown override key: {key}")
+    if key == "active_workspace":
+        return replace(config, active_workspace=text)
     if key == "workspace.root":
         return replace(
             config,
@@ -139,8 +144,18 @@ def _strict_int(value: Any, key: str) -> int:
     return cast(int, value)
 
 
+def _optional_string(value: Any, key: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ConfigurationError(f"{key} must be a string")
+    return value
+
+
 def _validate(config: AppConfig) -> None:
     graphs = config.graphs
+    if config.active_workspace is not None and not config.active_workspace.strip():
+        raise ConfigurationError("active_workspace must not be empty")
     if not str(config.workspace.root):
         raise ConfigurationError("workspace.root must not be empty")
     if graphs.mode != GRAPH_MODE:

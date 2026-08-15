@@ -199,10 +199,10 @@ Scientific and operational overrides should use `key=value` / dotlist syntax whe
 Examples:
 
 ```bash
-graphlab workspace init
-graphlab graph generate workspace=ws-a1b2c3d4
+graphlab workspace init testowy
+graphlab graph generate
 graphlab line create workspace=ws-a1b2c3d4
-graphlab line status line=ln-38aa192f
+graphlab line status ln-38aa192f
 ```
 
 Do not silently select a line when a command operates on a line.
