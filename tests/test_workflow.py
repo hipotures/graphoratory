@@ -15,6 +15,7 @@ from graphoratory.application import (
     generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
+    list_lines,
     reindex_workspace,
     resolve_line_for_command,
 )
@@ -148,7 +149,7 @@ def test_line_selection_uses_latest_manifest_without_sqlite(
         "2026-08-15T19:10:00.000000Z",
         ("a" * 64,),
     )
-    _write_test_line(
+    middle = _write_test_line(
         workspace_path,
         workspace,
         "2026-08-15T20:00:12.799583Z",
@@ -162,9 +163,13 @@ def test_line_selection_uses_latest_manifest_without_sqlite(
     )
     delete_database(workspace_path / DATABASE_NAME)
 
+    listed = list_lines(app_config, workspace.display)
     implicit = resolve_line_for_command(app_config, None, workspace.display)
     explicit = resolve_line_for_command(app_config, older.display, workspace.display)
 
+    assert [line.identifier for line in listed.lines] == [latest, middle, older]
+    assert [line.graph_count for line in listed.lines] == [1, 1, 1]
+    assert [line.latest for line in listed.lines] == [True, False, False]
     assert implicit.identifier == latest
     assert implicit.selected_latest is True
     assert explicit.identifier == older
@@ -190,9 +195,13 @@ def test_latest_line_is_scoped_to_selected_workspace(
     )
 
     selected = resolve_line_for_command(app_config, None, "workspace-a")
+    listed_a = list_lines(app_config, "workspace-a")
+    listed_b = list_lines(app_config, workspace_b.display)
 
     assert selected.identifier == line_a
     assert selected.identifier != line_b
+    assert [line.identifier for line in listed_a.lines] == [line_a]
+    assert [line.identifier for line in listed_b.lines] == [line_b]
     with pytest.raises(ArtifactError, match="does not belong to workspace workspace-a"):
         resolve_line_for_command(app_config, line_b.display, "workspace-a")
 
@@ -215,18 +224,50 @@ def test_latest_line_tie_uses_descending_full_hash(app_config: AppConfig) -> Non
     )
 
     selected = resolve_line_for_command(app_config, None, workspace.display)
+    listed = list_lines(app_config, workspace.display)
 
     assert selected.identifier.digest == max(first.digest, second.digest)
+    assert [line.identifier.digest for line in listed.lines] == sorted(
+        (first.digest, second.digest),
+        reverse=True,
+    )
 
 
 def test_latest_line_requires_an_existing_line(app_config: AppConfig) -> None:
     workspace = create_workspace(app_config, "empty")
+    temporary = app_config.workspace.root / workspace.display / "lines" / ".line.partial"
+    temporary.mkdir()
+    write_json_atomic(temporary / "manifest.json", {"invalid": True})
 
+    listed = list_lines(app_config, workspace.display)
+
+    assert listed.lines == ()
     with pytest.raises(
         ArtifactError,
         match=r"workspace empty has no lines; create one with `graphlab line create`",
     ):
         resolve_line_for_command(app_config, None, workspace.display)
+
+
+def test_line_list_rejects_an_invalid_completed_manifest(
+    app_config: AppConfig,
+) -> None:
+    workspace = create_workspace(app_config, "invalid-line")
+    line_path = app_config.workspace.root / workspace.display / "lines" / "ln-deadbeef"
+    line_path.mkdir()
+    write_json_atomic(
+        line_path / "manifest.json",
+        {
+            "artifact_type": "line",
+            "line_hash": "invalid",
+            "workspace_hash": workspace.digest,
+            "created_at": "2026-08-15T20:00:12.799583Z",
+            "graph_hashes": [],
+        },
+    )
+
+    with pytest.raises(ArtifactError, match="invalid line manifest"):
+        list_lines(app_config, workspace.display)
 
 
 def test_workspace_names_are_unique_and_safe(app_config: AppConfig) -> None:

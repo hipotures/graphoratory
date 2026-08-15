@@ -15,6 +15,7 @@ from graphoratory.application import (
     generate_workspace_graphs,
     get_line_status,
     get_workspace_status,
+    list_lines,
     list_workspaces,
     reindex_workspace,
 )
@@ -171,6 +172,41 @@ def line_create(
         workspace = operational.pop("workspace", None)
         _reject_operational(operational)
         typer.echo(create_line(config, workspace).display)
+
+    _run(execute)
+
+
+@line_app.command("list")
+def line_list(
+    overrides: Annotated[list[str] | None, typer.Argument(help=_OVERRIDE_HELP)] = None,
+) -> None:
+    """List lines in the selected workspace."""
+
+    def execute() -> None:
+        config, operational = _command_config(overrides, {"workspace"})
+        workspace = operational.pop("workspace", None)
+        _reject_operational(operational)
+        result = list_lines(config, workspace)
+        workspace_label = result.workspace_name or result.workspace.display
+        _CONSOLE.print(
+            f"[bold]Workspace:[/bold] {workspace_label} ({result.workspace.display})"
+        )
+        if not result.lines:
+            _CONSOLE.print(f"No lines in workspace {workspace_label}.")
+            return
+        table = Table(box=None)
+        table.add_column("ID")
+        table.add_column("CREATED")
+        table.add_column("GRAPHS", justify="right")
+        table.add_column("LATEST")
+        for line in result.lines:
+            table.add_row(
+                line.identifier.display,
+                line.created_at.strftime("%Y-%m-%d %H:%M:%S UTC"),
+                str(line.graph_count),
+                "*" if line.latest else "",
+            )
+        _CONSOLE.print(table)
 
     _run(execute)
 

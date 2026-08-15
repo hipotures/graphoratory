@@ -13,6 +13,7 @@ from graphoratory.artifacts import (
     WorkspaceArtifact,
     discard_directory,
     ensure_workspace_alias,
+    line_artifacts,
     normalize_workspace_manifests,
     publish_directory,
     resolve_latest_line,
@@ -90,6 +91,21 @@ class WorkspaceSummary:
     name: str | None
     created_at: str
     active: bool
+
+
+@dataclass(frozen=True, slots=True)
+class LineSummary:
+    identifier: Identifier
+    created_at: datetime
+    graph_count: int
+    latest: bool
+
+
+@dataclass(frozen=True, slots=True)
+class LineListResult:
+    workspace: Identifier
+    workspace_name: str | None
+    lines: tuple[LineSummary, ...]
 
 
 def create_workspace(config: AppConfig, name: str) -> Identifier:
@@ -374,6 +390,27 @@ def list_workspaces(config: AppConfig) -> list[WorkspaceSummary]:
         )
         for workspace in workspace_artifacts(config.workspace.root)
     ]
+
+
+def list_lines(
+    config: AppConfig,
+    workspace_value: str | None = None,
+) -> LineListResult:
+    workspace = _selected_workspace(config, workspace_value)
+    lines = tuple(
+        LineSummary(
+            identifier=line.identifier,
+            created_at=line.created_at,
+            graph_count=line.graph_count,
+            latest=index == 0,
+        )
+        for index, line in enumerate(line_artifacts(workspace))
+    )
+    return LineListResult(
+        workspace=workspace.identifier,
+        workspace_name=workspace.name,
+        lines=lines,
+    )
 
 
 def _graph_config_manifest(config: AppConfig) -> dict[str, Any]:

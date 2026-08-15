@@ -21,6 +21,7 @@ The implemented operations are:
 - rebuild a workspace SQLite index from authoritative artifacts;
 - generate and persist one graph corpus using a concrete generator or weighted mix;
 - create a line with a fixed graph subset;
+- list lines in a selected workspace from authoritative manifests;
 - show read-only status for an explicit line or the latest line in the selected workspace;
 - resolve lowercase typed workspace, line, and graph IDs;
 - index workspace, graph, line, and line-membership data in SQLite;
@@ -125,7 +126,17 @@ graphlab workspace status [WORKSPACE] [key=value ...]
 graphlab workspace reindex [WORKSPACE] [key=value ...]
 graphlab graph generate [key=value ...]
 graphlab line create [key=value ...]
+graphlab line list [key=value ...]
 graphlab line status [LINE] [key=value ...]
+```
+
+The implemented line command tree is:
+
+```text
+graphlab line
+├── create
+├── list
+└── status
 ```
 
 Examples:
@@ -140,6 +151,8 @@ graphlab graph generate
 graphlab graph generate workspace=test01 graphs.workspace_graph_count=100
 graphlab line create
 graphlab line create workspace=test01 graphs.line_graph_count=20
+graphlab line list
+graphlab line list workspace=test02
 graphlab line status
 graphlab line status ln-38aa192f
 graphlab line status workspace=test01
@@ -185,6 +198,32 @@ Automated and internal execution should continue to pass a concrete line ID.
 
 When an explicit line is used together with configured or explicit workspace context, the
 line must belong to that workspace. A mismatch fails instead of switching workspaces.
+
+## 4.2 Line listing
+
+`graphlab line list` lists lines from the selected workspace. The workspace follows the
+ordinary precedence:
+
+```text
+explicit workspace=...
+→ workspace.active
+→ error
+```
+
+The compact Rich output identifies the workspace once and contains exactly these columns:
+
+```text
+ID | CREATED | GRAPHS | LATEST
+```
+
+Rows are ordered by parsed UTC `created_at` descending, then full line hash descending for
+an exact timestamp tie. This is the same ordering used by implicit latest-line selection,
+so the first row is marked `*` in `LATEST`. The marker is derived display metadata, not
+active-line state.
+
+Listing is read-only and reconstructed from authoritative line manifests. It does not
+require SQLite, reindex artifacts, or change configuration. An empty workspace exits
+successfully with `No lines in workspace NAME.`
 
 ## 5. Workspace names and filesystem layout
 

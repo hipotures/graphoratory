@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from graphoratory.errors import ArtifactError
+from graphoratory.errors import ArtifactError, IdentifierError
 from graphoratory.identifiers import Identifier, ObjectType, resolve_typed
 from graphoratory.jsonio import read_json, write_json_atomic
 
@@ -33,6 +33,7 @@ class LineArtifact:
     identifier: Identifier
     workspace: Identifier
     created_at: datetime
+    graph_count: int
     path: Path
 
 
@@ -186,13 +187,13 @@ def resolve_line(root: Path, value: str) -> tuple[Identifier, Path, Path]:
 
 
 def resolve_latest_line(workspace: WorkspaceArtifact) -> LineArtifact:
-    candidates = _line_artifacts(workspace)
+    candidates = line_artifacts(workspace)
     if not candidates:
         label = workspace.name or workspace.identifier.display
         raise ArtifactError(
             f"workspace {label} has no lines; create one with `graphlab line create`"
         )
-    return max(candidates, key=lambda line: (line.created_at, line.identifier.digest))
+    return candidates[0]
 
 
 def temporary_directory(parent: Path, prefix: str) -> Path:
@@ -238,7 +239,7 @@ def workspace_artifact(path: Path) -> WorkspaceArtifact:
     return WorkspaceArtifact(identifier, raw_name, created_at, path)
 
 
-def _line_artifacts(workspace: WorkspaceArtifact) -> list[LineArtifact]:
+def line_artifacts(workspace: WorkspaceArtifact) -> list[LineArtifact]:
     lines_path = workspace.path / "lines"
     if not lines_path.exists():
         return []
@@ -261,13 +262,36 @@ def _line_artifacts(workspace: WorkspaceArtifact) -> list[LineArtifact]:
                 ObjectType.WORKSPACE,
                 _manifest_string(manifest, "workspace_hash"),
             )
+            if manifest.get("artifact_type") != "line":
+                raise ValueError("artifact_type must be line")
+            if identifier.display != line_path.name:
+                raise ValueError("line directory does not match line hash")
             if workspace_identifier != workspace.identifier:
                 raise ValueError("line belongs to another workspace")
             created_at = _parse_utc_timestamp(_manifest_string(manifest, "created_at"))
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+            graph_hashes = manifest["graph_hashes"]
+            if not isinstance(graph_hashes, list):
+                raise TypeError("graph_hashes must be a list")
+            for graph_hash in graph_hashes:
+                if not isinstance(graph_hash, str):
+                    raise TypeError("graph hash must be a string")
+                Identifier(ObjectType.GRAPH, graph_hash)
+        except (OSError, ValueError, KeyError, TypeError, IdentifierError) as exc:
             raise ArtifactError(f"invalid line manifest: {manifest_path}") from exc
-        artifacts.append(LineArtifact(identifier, workspace_identifier, created_at, line_path))
-    return artifacts
+        artifacts.append(
+            LineArtifact(
+                identifier,
+                workspace_identifier,
+                created_at,
+                len(graph_hashes),
+                line_path,
+            )
+        )
+    return sorted(
+        artifacts,
+        key=lambda line: (line.created_at, line.identifier.digest),
+        reverse=True,
+    )
 
 
 def _parse_utc_timestamp(value: str) -> datetime:

@@ -3,9 +3,15 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from graphoratory.application import create_workspace
+from graphoratory.application import (
+    create_line,
+    create_workspace,
+    generate_workspace_graphs,
+)
+from graphoratory.artifacts import DATABASE_NAME
 from graphoratory.cli import app
 from graphoratory.config import AppConfig
+from graphoratory.database.core import delete_database
 from graphoratory.jsonio import read_json
 
 runner = CliRunner()
@@ -24,6 +30,7 @@ runner = CliRunner()
         ["graph", "generate", "--help"],
         ["line", "--help"],
         ["line", "create", "--help"],
+        ["line", "list", "--help"],
         ["line", "status", "--help"],
     ],
 )
@@ -77,6 +84,20 @@ def test_workspace_commands_use_active_name_and_id(config_file: Path) -> None:
     assert created_line.exit_code == 0
     line_id = created_line.stdout.strip()
     assert line_id.startswith("ln-")
+
+    listed_lines = runner.invoke(
+        app,
+        ["line", "list", f"config={config_file}"],
+    )
+    assert listed_lines.exit_code == 0
+    assert "Workspace: testowy" in listed_lines.stdout
+    assert workspace_id in listed_lines.stdout
+    assert all(
+        column in listed_lines.stdout
+        for column in ("ID", "CREATED", "GRAPHS", "LATEST")
+    )
+    assert line_id in listed_lines.stdout
+    assert listed_lines.stdout.count("*") == 1
 
     line_status = runner.invoke(
         app,
@@ -245,6 +266,56 @@ def test_line_status_without_a_line_requires_a_workspace(config_file: Path) -> N
     result = runner.invoke(app, ["line", "status", f"config={config_file}"])
     assert result.exit_code == 2
     assert "no workspace selected" in result.stderr
+
+
+def test_line_list_is_workspace_scoped_and_sqlite_independent(
+    app_config: AppConfig,
+    config_file: Path,
+) -> None:
+    workspace_a = create_workspace(app_config, "workspace-a")
+    workspace_b = create_workspace(app_config, "workspace-b")
+    generate_workspace_graphs(app_config, workspace_a.display)
+    generate_workspace_graphs(app_config, workspace_b.display)
+    line_a = create_line(app_config, workspace_a.display)
+    line_b = create_line(app_config, workspace_b.display)
+    _set_active_workspace(config_file, "workspace-a")
+    delete_database(app_config.workspace.root / workspace_a.display / DATABASE_NAME)
+
+    active = runner.invoke(app, ["line", "list", f"config={config_file}"])
+    explicit = runner.invoke(
+        app,
+        [
+            "line",
+            "list",
+            f"workspace={workspace_b.display}",
+            f"config={config_file}",
+        ],
+    )
+
+    assert active.exit_code == 0
+    assert "Workspace: workspace-a" in active.stdout
+    assert line_a.display in active.stdout
+    assert line_b.display not in active.stdout
+    assert active.stdout.count("*") == 1
+    assert explicit.exit_code == 0
+    assert "Workspace: workspace-b" in explicit.stdout
+    assert line_b.display in explicit.stdout
+    assert line_a.display not in explicit.stdout
+    assert explicit.stdout.count("*") == 1
+
+
+def test_line_list_handles_an_empty_workspace(
+    app_config: AppConfig,
+    config_file: Path,
+) -> None:
+    create_workspace(app_config, "empty")
+    _set_active_workspace(config_file, "empty")
+
+    result = runner.invoke(app, ["line", "list", f"config={config_file}"])
+
+    assert result.exit_code == 0
+    assert "Workspace: empty" in result.stdout
+    assert "No lines in workspace empty." in result.stdout
 
 
 def _set_active_workspace(path: Path, value: str) -> None:

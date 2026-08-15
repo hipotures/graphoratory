@@ -407,6 +407,7 @@ graphlab workspace reindex
 graphlab graph generate
 
 graphlab line create
+graphlab line list
 graphlab line status ln-xxxxxxxx
 ```
 
