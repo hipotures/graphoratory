@@ -1,0 +1,191 @@
+HEG fixed-order coupled switch v2 + exact C4 gate order=26 beam=32 lanes=16+8+8 escape_height=1 structural_pool=128 (escape_reserved=48) structural_workers=4 
+structural_C<=8 max_depth=1000 score_processes=16 batch=64x4 guided_limit=512 coupled_scan=8192 hot_vertices=6 
+families=two_switch,endpoint_relocate,vertex_rewire2,coupled_switch2
+step_budget=120.0s total_budget=391.676823s node_budget=10,000,000 cap=1,000,000
+START total=7 weighted=104 C4=6 C8=1 C16=0 tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=7b7e9d6b
+DEPTH  1 full_scored=10496/10600 c4_gate=10496/10600 pruned=104 exact=10496 improving=0 neutral=26 uphill=10470 structural=65/65 (best=26,escape=39) best_child_total=7
+Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=2.05s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 endpoint_relocate:fixed=1/donor=0/target=21 rm[0-1] add[1-21] hash=84c34378
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=84c34378
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=main       tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=070cb923
+       profile=(6, 2, 0) lane=escape     tauE=7 tauV=4 unionE=30 unionV=24 maxE=2 maxV=4 hash=780fa7ed
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=84c34378
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=25 maxE=2 maxV=3 hash=407f5c02
+     proposal space two_switch=1428 endpoint_relocate=599 vertex_rewire2=381 coupled_switch2=8192
+       two_switch         c4=1421/1428 pruned=7 minPassC4=4 scored=1421   exact=1421   improving=0     neutral=12    bestΔ=+0 total=7 hash=070cb923
+       endpoint_relocate  c4=588/599 pruned=11 minPassC4=5 scored=588    exact=588    improving=0     neutral=14    bestΔ=+0 total=7 hash=0d3d7548
+       vertex_rewire2     c4=356/381 pruned=25 minPassC4=5 scored=356    exact=356    improving=0     neutral=0     bestΔ=+5 total=12 hash=1a982ec7
+       coupled_switch2    c4=8131/8192 pruned=61 minPassC4=2 scored=8131   exact=8131   improving=0     neutral=0     bestΔ=+3 total=10 hash=138a53f5
+     full unique scores 10496/10600 proposal slots after C4 pruning/deadline/dedupe
+     submitted=10600; 104 did not contribute a final unique score
+DEPTH  2 full_scored=330490/337427 c4_gate=333019/337426 pruned=4407 exact=330490 improving=20 neutral=487 uphill=329983 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=34.99s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 endpoint_relocate:fixed=12/donor=5/target=11 rm[5-12] add[11-12] hash=181c3fe0
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=181c3fe0
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=01576679
+       profile=(6, 2, 0) lane=escape     tauE=7 tauV=4 unionE=30 unionV=24 maxE=2 maxV=4 hash=089910c9
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=181c3fe0
+     proposal space two_switch=45754 endpoint_relocate=19519 vertex_rewire2=10010 coupled_switch2=262144
+       two_switch         c4=45192/45753 pruned=561 minPassC4=4 scored=44564  exact=44564  improving=12    neutral=195   bestΔ=-1 total=7 hash=92fec62a
+       endpoint_relocate  c4=19010/19519 pruned=509 minPassC4=5 scored=18036  exact=18036  improving=8     neutral=286   bestΔ=-1 total=7 hash=175f2ae3
+       vertex_rewire2     c4=9369/10010 pruned=641 minPassC4=5 scored=9042   exact=9042   improving=0     neutral=4     bestΔ=+0 total=8 hash=e24918d3
+       coupled_switch2    c4=259448/262144 pruned=2696 minPassC4=2 scored=258848 exact=258848 improving=0     neutral=2     bestΔ=+0 total=8 hash=269313d8
+     invalid=1 duplicate/visited=2529
+     full unique scores 330490/337427 proposal slots after C4 pruning/deadline/dedupe
+     submitted=337427; 6937 did not contribute a final unique score
+DEPTH  3 full_scored=321636/330998 c4_gate=324884/330983 pruned=6099 exact=321636 improving=27 neutral=835 uphill=320774 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=35.94s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 two_switch:ac_bd rm[2-21,8-24] add[2-8,21-24] hash=1f5a401b
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=181c3fe0
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=12c05192
+       profile=(6, 2, 0) lane=escape     tauE=7 tauV=4 unionE=30 unionV=24 maxE=2 maxV=4 hash=02359c5b
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=1f5a401b
+     proposal space two_switch=45765 endpoint_relocate=19292 vertex_rewire2=3797 coupled_switch2=262144
+       two_switch         c4=43953/45762 pruned=1809 minPassC4=4 scored=43468  exact=43468  improving=9     neutral=462   bestΔ=-1 total=7 hash=ab92e75b
+       endpoint_relocate  c4=18256/19280 pruned=1024 minPassC4=5 scored=17095  exact=17095  improving=18    neutral=370   bestΔ=-1 total=7 hash=3adb7c63
+       vertex_rewire2     c4=3512/3797 pruned=285 minPassC4=5 scored=2435   exact=2435   improving=0     neutral=0     bestΔ=+1 total=8 hash=b2b31641
+       coupled_switch2    c4=259163/262144 pruned=2981 minPassC4=2 scored=258638 exact=258638 improving=0     neutral=3     bestΔ=+0 total=7 hash=7671d6da
+     invalid=15 duplicate/visited=3248
+     full unique scores 321636/330998 proposal slots after C4 pruning/deadline/dedupe
+     submitted=330998; 9362 did not contribute a final unique score
+DEPTH  4 full_scored=322486/331734 c4_gate=324421/331720 pruned=7299 exact=322486 improving=43 neutral=824 uphill=321619 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=36.99s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 two_switch:ad_bc rm[5-12,9-18] add[5-18,9-12] hash=002d9500
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=002d9500
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=048c5285
+       profile=(6, 2, 0) lane=escape     tauE=7 tauV=4 unionE=30 unionV=24 maxE=2 maxV=4 hash=0102b3b6
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=002d9500
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=26 maxE=2 maxV=3 hash=3befa46d
+     proposal space two_switch=45679 endpoint_relocate=19239 vertex_rewire2=4672 coupled_switch2=262144
+       two_switch         c4=43669/45677 pruned=2008 minPassC4=4 scored=43248  exact=43248  improving=17    neutral=482   bestΔ=-1 total=7 hash=117df3c7
+       endpoint_relocate  c4=18214/19227 pruned=1013 minPassC4=5 scored=17495  exact=17495  improving=26    neutral=329   bestΔ=-1 total=7 hash=0c3cb00e
+       vertex_rewire2     c4=4246/4672 pruned=426 minPassC4=5 scored=3794   exact=3794   improving=0     neutral=0     bestΔ=+2 total=10 hash=8c877b86
+       coupled_switch2    c4=258292/262144 pruned=3852 minPassC4=2 scored=257949 exact=257949 improving=0     neutral=13    bestΔ=+0 total=7 hash=447e7452
+     invalid=14 duplicate/visited=1935
+     full unique scores 322486/331734 proposal slots after C4 pruning/deadline/dedupe
+     submitted=331734; 9248 did not contribute a final unique score
+DEPTH  5 full_scored=322683/332242 c4_gate=324255/332241 pruned=7986 exact=322683 improving=31 neutral=797 uphill=321855 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=36.24s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 endpoint_relocate:fixed=12/donor=21/target=8 rm[12-21] add[8-12] hash=00065a2e
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=0a30dde3
+       profile=(6, 2, 0) lane=escape     tauE=7 tauV=4 unionE=30 unionV=24 maxE=2 maxV=4 hash=00dd16c1
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=26 maxE=2 maxV=3 hash=04f0e6d7
+       profile=(8, 0, 0) lane=escape     tauE=7 tauV=5 unionE=29 unionV=25 maxE=2 maxV=3 hash=d3be81d6
+     proposal space two_switch=45621 endpoint_relocate=18984 vertex_rewire2=5493 coupled_switch2=262144
+       two_switch         c4=43487/45620 pruned=2133 minPassC4=4 scored=43172  exact=43172  improving=12    neutral=453   bestΔ=-1 total=7 hash=1ee9ccb2
+       endpoint_relocate  c4=18004/18984 pruned=980 minPassC4=5 scored=17483  exact=17483  improving=18    neutral=337   bestΔ=-1 total=7 hash=100333c5
+       vertex_rewire2     c4=4982/5493 pruned=511 minPassC4=5 scored=4681   exact=4681   improving=0     neutral=1     bestΔ=+0 total=8 hash=26872eba
+       coupled_switch2    c4=257782/262144 pruned=4362 minPassC4=2 scored=257347 exact=257347 improving=1     neutral=6     bestΔ=-1 total=7 hash=420a829c
+     invalid=1 duplicate/visited=1572
+     full unique scores 322683/332242 proposal slots after C4 pruning/deadline/dedupe
+     submitted=332242; 9559 did not contribute a final unique score
+DEPTH  6 full_scored=321974/332269 c4_gate=323546/332251 pruned=8705 exact=321974 improving=26 neutral=814 uphill=321134 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=37.90s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 endpoint_relocate:fixed=18/donor=12/target=10 rm[12-18] add[10-18] hash=008f6542
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=04709e30
+       profile=(6, 2, 0) lane=escape     tauE=7 tauV=4 unionE=30 unionV=24 maxE=2 maxV=4 hash=034db4c9
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=008f6542
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=25 maxE=2 maxV=3 hash=13417533
+     proposal space two_switch=45557 endpoint_relocate=18960 vertex_rewire2=5608 coupled_switch2=262144
+       two_switch         c4=43238/45555 pruned=2317 minPassC4=4 scored=42839  exact=42839  improving=12    neutral=464   bestΔ=-1 total=7 hash=77009e12
+       endpoint_relocate  c4=17856/18944 pruned=1088 minPassC4=5 scored=17398  exact=17398  improving=14    neutral=341   bestΔ=-1 total=7 hash=6450adc7
+       vertex_rewire2     c4=5048/5608 pruned=560 minPassC4=5 scored=4897   exact=4897   improving=0     neutral=1     bestΔ=+0 total=8 hash=e263c378
+       coupled_switch2    c4=257404/262144 pruned=4740 minPassC4=2 scored=256840 exact=256840 improving=0     neutral=8     bestΔ=+0 total=7 hash=13387f5a
+     invalid=18 duplicate/visited=1572
+     full unique scores 321974/332269 proposal slots after C4 pruning/deadline/dedupe
+     submitted=332269; 10295 did not contribute a final unique score
+DEPTH  7 full_scored=322354/332736 c4_gate=323389/332719 pruned=9330 exact=322354 improving=25 neutral=841 uphill=321488 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=38.51s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 two_switch:ac_bd rm[10-11,12-18] add[10-12,11-18] hash=003e7423
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=09a72ed4
+       profile=(6, 2, 0) lane=escape     tauE=6 tauV=4 unionE=31 unionV=24 maxE=3 maxV=3 hash=873c625c
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=003e7423
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=25 maxE=2 maxV=3 hash=1b017f66
+     proposal space two_switch=45473 endpoint_relocate=18679 vertex_rewire2=6440 coupled_switch2=262144
+       two_switch         c4=43279/45472 pruned=2193 minPassC4=4 scored=43090  exact=43090  improving=13    neutral=491   bestΔ=-1 total=7 hash=a24ecdff
+       endpoint_relocate  c4=17674/18663 pruned=989 minPassC4=5 scored=17205  exact=17205  improving=12    neutral=342   bestΔ=-1 total=7 hash=76a1b1a3
+       vertex_rewire2     c4=5751/6440 pruned=689 minPassC4=5 scored=5588   exact=5588   improving=0     neutral=2     bestΔ=+0 total=7 hash=16c0f840
+       coupled_switch2    c4=256685/262144 pruned=5459 minPassC4=2 scored=256471 exact=256471 improving=0     neutral=6     bestΔ=+0 total=7 hash=01c135bf
+     invalid=17 duplicate/visited=1035
+     full unique scores 322354/332736 proposal slots after C4 pruning/deadline/dedupe
+     submitted=332736; 10382 did not contribute a final unique score
+DEPTH  8 full_scored=322150/332780 c4_gate=323381/332778 pruned=9397 exact=322150 improving=17 neutral=791 uphill=321342 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=39.12s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 endpoint_relocate:fixed=12/donor=5/target=9 rm[5-12] add[9-12] hash=0045ccf8
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=02c7c5ec
+       profile=(6, 2, 0) lane=escape     tauE=6 tauV=4 unionE=31 unionV=24 maxE=3 maxV=3 hash=07558332
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=0045ccf8
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=26 maxE=2 maxV=3 hash=04d1dfc1
+     proposal space two_switch=45423 endpoint_relocate=18602 vertex_rewire2=6611 coupled_switch2=262144
+       two_switch         c4=43181/45421 pruned=2240 minPassC4=4 scored=42867  exact=42867  improving=8     neutral=466   bestΔ=-1 total=7 hash=06f35650
+       endpoint_relocate  c4=17586/18602 pruned=1016 minPassC4=5 scored=17223  exact=17223  improving=8     neutral=319   bestΔ=-1 total=7 hash=c27bea7b
+       vertex_rewire2     c4=5934/6611 pruned=677 minPassC4=4 scored=5783   exact=5783   improving=1     neutral=2     bestΔ=-1 total=7 hash=6088b470
+       coupled_switch2    c4=256680/262144 pruned=5464 minPassC4=2 scored=256277 exact=256277 improving=0     neutral=4     bestΔ=+0 total=7 hash=a5298b00
+     invalid=2 duplicate/visited=1231
+     full unique scores 322150/332780 proposal slots after C4 pruning/deadline/dedupe
+     submitted=332780; 10630 did not contribute a final unique score
+DEPTH  9 full_scored=322671/333770 c4_gate=323892/333733 pruned=9841 exact=322671 improving=17 neutral=821 uphill=321833 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=37.61s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 two_switch:ad_bc rm[4-5,9-12] add[4-12,5-9] hash=01d7c413
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=0986f62a
+       profile=(6, 2, 0) lane=escape     tauE=6 tauV=4 unionE=31 unionV=24 maxE=3 maxV=3 hash=0721afa5
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=01d7c413
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=26 maxE=2 maxV=4 hash=076526ee
+     proposal space two_switch=45356 endpoint_relocate=18463 vertex_rewire2=7807 coupled_switch2=262144
+       two_switch         c4=43074/45351 pruned=2277 minPassC4=4 scored=42708  exact=42708  improving=7     neutral=484   bestΔ=-1 total=7 hash=250d8859
+       endpoint_relocate  c4=17439/18431 pruned=992 minPassC4=5 scored=17093  exact=17093  improving=10    neutral=333   bestΔ=-1 total=7 hash=41fc522b
+       vertex_rewire2     c4=7036/7807 pruned=771 minPassC4=4 scored=7021   exact=7021   improving=0     neutral=1     bestΔ=+0 total=7 hash=38104159
+       coupled_switch2    c4=256343/262144 pruned=5801 minPassC4=2 scored=255849 exact=255849 improving=0     neutral=3     bestΔ=+0 total=7 hash=ac584f54
+     invalid=37 duplicate/visited=1221
+     full unique scores 322671/333770 proposal slots after C4 pruning/deadline/dedupe
+     submitted=333770; 11099 did not contribute a final unique score
+DEPTH 10 full_scored=325156/334964 c4_gate=326290/334895 pruned=8605 exact=325156 improving=15 neutral=797 uphill=324344 structural=128/128 (best=80,escape=48) 
+best_child_total=7 Δ=+0 global_best=7 barrier<=8 c4_ceiling=8 time=39.82s
+     best child C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 endpoint_relocate:fixed=10/donor=9/target=4 rm[9-10] add[4-10] hash=0009a5b1
+     global best C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=00065a2e
+     next beam=32 main=16 structural=8 escape=8 fill=0
+       profile=(6, 1, 0) lane=structural tauE=7 tauV=4 unionE=32 unionV=26 maxE=1 maxV=3 hash=269811ee
+       profile=(6, 2, 0) lane=escape     tauE=6 tauV=4 unionE=31 unionV=24 maxE=3 maxV=3 hash=10965323
+       profile=(7, 0, 0) lane=main       tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 hash=0009a5b1
+       profile=(7, 1, 0) lane=escape     tauE=7 tauV=4 unionE=33 unionV=25 maxE=2 maxV=3 hash=053aa15a
+     proposal space two_switch=45512 endpoint_relocate=19461 vertex_rewire2=7847 coupled_switch2=262144
+       two_switch         c4=43250/45507 pruned=2257 minPassC4=4 scored=42947  exact=42947  improving=4     neutral=451   bestΔ=-1 total=7 hash=3296f90c
+       endpoint_relocate  c4=18375/19397 pruned=1022 minPassC4=5 scored=17989  exact=17989  improving=11    neutral=341   bestΔ=-1 total=7 hash=05b621ac
+       vertex_rewire2     c4=7092/7847 pruned=755 minPassC4=4 scored=6941   exact=6941   improving=0     neutral=1     bestΔ=+0 total=7 hash=385496bc
+       coupled_switch2    c4=257573/262144 pruned=4571 minPassC4=2 scored=257279 exact=257279 improving=0     neutral=4     bestΔ=+0 total=7 hash=1a518aad
+     invalid=69 duplicate/visited=1134
+     full unique scores 325156/334964 proposal slots after C4 pruning/deadline/dedupe
+     submitted=334964; 9808 did not contribute a final unique score
+Total time budget exhausted.
+Best graph saved: order_sweep_23_30/order_26/best.json
+Best lineage saved: order_sweep_23_30/order_26/lineage.json
+
+FINAL POLISH LINEAGE order=26 depth=5
+DEPTH             FAMILY TOTAL    Δ WEIGHTED COMPONENTS                              HASH
+    0                  -     7    -      104 C4=6 C8=1 C16=0                     7b7e9d6b
+    1  endpoint_relocate     7   +0      112 C4=7 C8=0 C16=0                     84c34378
+       endpoint_relocate:fixed=1/donor=0/target=21 rm[0-1] add[1-21]
+    2  endpoint_relocate     7   +0      112 C4=7 C8=0 C16=0                     181c3fe0
+       endpoint_relocate:fixed=12/donor=5/target=11 rm[5-12] add[11-12]
+    3         two_switch     7   +0      112 C4=7 C8=0 C16=0                     1f5a401b
+       two_switch:ac_bd rm[2-21,8-24] add[2-8,21-24]
+    4         two_switch     7   +0      112 C4=7 C8=0 C16=0                     02489a53
+       two_switch:ac_bd rm[4-5,10-11] add[4-10,5-11]
+    5  endpoint_relocate     7   +0      112 C4=7 C8=0 C16=0                     00065a2e
+       endpoint_relocate:fixed=12/donor=21/target=8 rm[12-21] add[8-12]
+Done order=26 best_total=7 C4=7 C8=0 C16=0 tauE=7 tauV=4 unionE=28 unionV=23 maxE=1 maxV=3 depth=5 elapsed=392.32s hash=00065a2e

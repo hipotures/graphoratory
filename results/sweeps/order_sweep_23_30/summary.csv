@@ -1,0 +1,9 @@
+order,status,start_path,start_total,best_path,best_total,weighted,c4,c8,c16,tau_edge,tau_vertex,edge_union,vertex_union,max_edge_load,max_vertex_load,best_hash,elapsed_seconds,budget_seconds,pass_index
+23,complete,order_sweep_23_30/bootstrap/order_23.json,12,order_sweep_23_30/order_23/best.json,5,80,5,0,0,5,2,20,17,1,3,000b1a7499772159641424f13a4b37d108165371abae959210048278df69a99f,416.11126305799985,399.386108543875,1
+24,complete,order_sweep_23_30/bootstrap/order_24.json,9,order_sweep_23_30/order_24/best.json,5,80,5,0,0,5,4,20,19,1,2,0002fa127cea86e5d89f737cbad52ad22c05719ba8f31399323809f781f816f4,418.75021161799987,397.28142409642857,1
+25,complete,order_sweep_23_30/bootstrap/order_25.json,8,order_sweep_23_30/order_25/best.json,6,96,6,0,0,6,3,24,20,1,3,019de6c65a7a3299efb6b2aa37d921b4792df28418b98e4537ab953f1f076f4a,407.827603299,394.03596959916666,1
+26,complete,mixed_polish_best_n26.json,7,order_sweep_23_30/order_26/best.json,7,112,7,0,0,7,4,28,23,1,3,00065a2e3d58d5343eef3e4fe47d5adb19b59c669fc5b270565897628cf8c697,393.499224787,391.67682262060003,1
+27,complete,order_sweep_23_30/bootstrap/order_27.json,12,order_sweep_23_30/order_27/best.json,6,96,6,0,0,6,4,24,22,1,2,6cb580211b136bcfe0426d9895af5382f1fd3a3e31e868efdb49764bfd5459b5,395.3752389450001,391.72004162075007,1
+28,complete,order_sweep_23_30/bootstrap/order_28.json,16,order_sweep_23_30/order_28/best.json,8,128,8,0,0,8,3,32,26,1,4,1ba04562fc14b582e22f89b9e7656b3529ef05c251b5f246f19dabcf032636e9,397.08659721899994,391.166630074,1
+29,complete,order_sweep_23_30/bootstrap/order_29.json,17,order_sweep_23_30/order_29/best.json,10,160,10,0,0,9,4,34,29,2,4,015320b4e250714c9a86ae062c470b061f05b6c370b830b7e7a322f5143932f0,401.69326142299997,389.20379163949997,1
+30,complete,order_sweep_23_30/bootstrap/order_30.json,18,order_sweep_23_30/order_30/best.json,11,168,10,1,0,9,4,39,30,3,4,04febd3c9ba915a53c8de663480bf9d5b0a804e53b7a3b976aea9c6c4fd3e24b,393.03615869999976,378.7081096510001,1

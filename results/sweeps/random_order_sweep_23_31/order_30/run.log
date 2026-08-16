@@ -1,0 +1,134 @@
+HEG random legal walk order=30 delta>=3 workers=16 candidates/worker=8 walk=4..48
+mutation=cycle-blind ADD/REMOVE legal walk parent_mode=score-blind reservoir root_restart=0.050 edge_range=45..none
+budget=300.0s success_TOTAL<=0 node_budget=10,000,000 cap=1,000,000
+START total=11 weighted=168 C4=10 C8=1 C16=0 m=52 hash=04febd3c
+NEW BEST total=8 (-3) weighted=120 C4=7 C8=1 C16=0 m=49 walk=5 +1/-4 hash=cf184b99 parent=04febd3c
+NEW BEST total=7 (-1) weighted=104 C4=6 C8=1 C16=0 m=50 walk=10 +4/-6 hash=7b1756f0 parent=04febd3c
+NEW BEST total=6 (-1) weighted=88 C4=5 C8=1 C16=0 m=49 walk=5 +1/-4 hash=fbb838a5 parent=04febd3c
+STATUS t=10.0s rounds=42 evaluated=5,376 exact=4,942 nonexact=434 unique=4,941 dup=2 mutfail=0 errors=0 rate=536.3/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=5
+       move_steps add=72,505 remove=66,928; edge_hist m52:454,m50:443,m51:436,m49:430,m54:411
+       profiles (7, 1, 0):2, (6, 1, 0):2, (10, 1, 0):1, (12, 207, 29977):1
+STATUS t=20.2s rounds=84 evaluated=10,752 exact=9,854 nonexact=898 unique=9,852 dup=3 mutfail=0 errors=0 rate=533.5/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=7
+       move_steps add=145,134 remove=133,094; edge_hist m51:911,m49:869,m50:867,m52:845,m53:786
+       profiles (6, 1, 0):3, (7, 1, 0):2, (5, 24, 989):2, (2, 19, 985):2
+STATUS t=30.1s rounds=125 evaluated=16,000 exact=14,654 nonexact=1,346 unique=14,651 dup=4 mutfail=0 errors=0 rate=531.5/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=8
+       move_steps add=216,660 remove=198,703; edge_hist m51:1346,m49:1285,m50:1283,m52:1265,m53:1157
+       profiles (7, 1, 0):3, (6, 1, 0):3, (5, 24, 989):2, (4, 42, 3477):2
+STATUS t=40.1s rounds=166 evaluated=21,248 exact=19,437 nonexact=1,811 unique=19,434 dup=4 mutfail=0 errors=0 rate=529.8/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=9
+       move_steps add=288,765 remove=264,572; edge_hist m51:1748,m50:1711,m49:1704,m52:1686,m53:1523
+       profiles (6, 1, 0):4, (7, 1, 0):3, (3, 19, 612):2, (5, 24, 989):2
+STATUS t=50.2s rounds=208 evaluated=26,624 exact=24,322 nonexact=2,302 unique=24,318 dup=5 mutfail=0 errors=0 rate=530.4/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=13
+       move_steps add=361,935 remove=331,085; edge_hist m51:2163,m50:2159,m49:2135,m52:2100,m53:1918
+       profiles (6, 1, 0):4, (7, 1, 0):3, (3, 19, 612):2, (3, 14, 636):2
+STATUS t=60.2s rounds=249 evaluated=31,872 exact=29,106 nonexact=2,766 unique=29,100 dup=7 mutfail=0 errors=0 rate=529.7/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=16
+       move_steps add=433,467 remove=396,805; edge_hist m50:2587,m51:2558,m49:2530,m52:2505,m53:2295
+       profiles (7, 1, 0):5, (6, 1, 0):5, (3, 19, 612):2, (3, 14, 636):2
+STATUS t=70.1s rounds=291 evaluated=37,248 exact=33,989 nonexact=3,259 unique=33,982 dup=8 mutfail=0 errors=0 rate=531.6/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=18
+       move_steps add=505,837 remove=462,833; edge_hist m50:3029,m51:2997,m49:2988,m52:2918,m53:2662
+       profiles (7, 1, 0):5, (6, 1, 0):5, (8, 1, 0):3, (3, 19, 612):2
+STATUS t=80.2s rounds=333 evaluated=42,624 exact=38,910 nonexact=3,714 unique=38,902 dup=9 mutfail=0 errors=0 rate=531.6/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=fbb838a5 elite=64 reservoir=2048 low_logged=19
+       move_steps add=578,510 remove=529,362; edge_hist m50:3474,m51:3422,m49:3416,m52:3352,m53:3065
+       profiles (7, 1, 0):5, (6, 1, 0):5, (8, 1, 0):3, (3, 19, 612):2
+NEW BEST total=6 (+0) weighted=88 C4=5 C8=1 C16=0 m=49 walk=5 +1/-4 hash=a9e9ecd3 parent=04febd3c
+STATUS t=90.0s rounds=375 evaluated=48,000 exact=43,803 nonexact=4,197 unique=43,790 dup=14 mutfail=0 errors=0 rate=533.2/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=21
+       move_steps add=650,692 remove=595,089; edge_hist m50:3910,m51:3853,m49:3829,m52:3776,m53:3467
+       profiles (7, 1, 0):5, (6, 1, 0):5, (8, 1, 0):3, (5, 57, 4256):3
+STATUS t=100.1s rounds=417 evaluated=53,376 exact=48,700 nonexact=4,676 unique=48,687 dup=14 mutfail=0 errors=0 rate=533.3/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=24
+       move_steps add=723,489 remove=661,589; edge_hist m50:4355,m51:4308,m49:4242,m52:4188,m53:3860
+       profiles (7, 1, 0):7, (6, 1, 0):5, (8, 1, 0):3, (5, 57, 4256):3
+STATUS t=110.1s rounds=458 evaluated=58,624 exact=53,503 nonexact=5,121 unique=53,488 dup=16 mutfail=0 errors=0 rate=532.4/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=26
+       move_steps add=794,891 remove=727,338; edge_hist m50:4774,m51:4698,m49:4680,m52:4595,m53:4229
+       profiles (7, 1, 0):7, (6, 1, 0):5, (8, 1, 0):4, (4, 34, 2153):3
+STATUS t=120.2s rounds=499 evaluated=63,872 exact=58,301 nonexact=5,571 unique=58,281 dup=21 mutfail=0 errors=0 rate=531.2/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=26
+       move_steps add=866,314 remove=792,716; edge_hist m50:5227,m51:5116,m49:5095,m52:4980,m48:4615
+       profiles (7, 1, 0):7, (6, 1, 0):5, (8, 1, 0):4, (4, 34, 2153):3
+STATUS t=130.2s rounds=540 evaluated=69,120 exact=63,057 nonexact=6,063 unique=63,031 dup=27 mutfail=0 errors=0 rate=530.8/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=27
+       move_steps add=937,235 remove=857,405; edge_hist m50:5639,m51:5568,m49:5503,m52:5380,m48:4978
+       profiles (7, 1, 0):8, (6, 1, 0):5, (8, 1, 0):4, (4, 34, 2153):3
+STATUS t=140.1s rounds=580 evaluated=74,240 exact=67,719 nonexact=6,521 unique=67,690 dup=30 mutfail=0 errors=0 rate=529.8/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=29
+       move_steps add=1,006,425 remove=920,783; edge_hist m50:6057,m51:5998,m49:5912,m52:5766,m48:5364
+       profiles (7, 1, 0):8, (6, 1, 0):5, (8, 1, 0):4, (4, 34, 2153):3
+STATUS t=150.2s rounds=621 evaluated=79,488 exact=72,513 nonexact=6,975 unique=72,478 dup=36 mutfail=0 errors=0 rate=529.3/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=31
+       move_steps add=1,076,804 remove=985,296; edge_hist m50:6481,m51:6391,m49:6289,m52:6180,m48:5779
+       profiles (7, 1, 0):8, (6, 1, 0):6, (8, 1, 0):4, (5, 58, 5686):3
+STATUS t=160.2s rounds=663 evaluated=84,864 exact=77,418 nonexact=7,446 unique=77,380 dup=39 mutfail=0 errors=0 rate=529.7/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=31
+       move_steps add=1,150,302 remove=1,052,364; edge_hist m50:6944,m51:6819,m49:6736,m52:6568,m48:6156
+       profiles (7, 1, 0):8, (6, 1, 0):6, (8, 1, 0):4, (5, 58, 5686):3
+STATUS t=170.1s rounds=703 evaluated=89,984 exact=82,071 nonexact=7,913 unique=82,029 dup=43 mutfail=0 errors=0 rate=529.1/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=33
+       move_steps add=1,220,414 remove=1,116,682; edge_hist m50:7362,m51:7200,m49:7159,m52:6971,m48:6541
+       profiles (7, 1, 0):8, (6, 1, 0):6, (8, 1, 0):6, (5, 58, 5686):3
+STATUS t=180.1s rounds=745 evaluated=95,360 exact=86,992 nonexact=8,368 unique=86,944 dup=49 mutfail=0 errors=0 rate=529.5/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=34
+       move_steps add=1,293,232 remove=1,183,430; edge_hist m50:7815,m51:7703,m49:7612,m52:7381,m48:6909
+       profiles (7, 1, 0):8, (6, 1, 0):6, (8, 1, 0):6, (5, 58, 5686):3
+STATUS t=190.1s rounds=785 evaluated=100,480 exact=91,612 nonexact=8,868 unique=91,560 dup=53 mutfail=0 errors=0 rate=528.5/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=35
+       move_steps add=1,363,583 remove=1,247,028; edge_hist m50:8236,m51:8101,m49:8014,m52:7791,m48:7283
+       profiles (7, 1, 0):8, (6, 1, 0):6, (8, 1, 0):6, (5, 58, 5686):3
+STATUS t=200.0s rounds=826 evaluated=105,728 exact=96,385 nonexact=9,343 unique=96,331 dup=55 mutfail=0 errors=0 rate=528.6/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=36
+       move_steps add=1,435,682 remove=1,312,610; edge_hist m50:8673,m51:8522,m49:8417,m52:8165,m48:7635
+       profiles (7, 1, 0):9, (6, 1, 0):6, (8, 1, 0):6, (5, 58, 5686):3
+STATUS t=210.2s rounds=869 evaluated=111,232 exact=101,401 nonexact=9,831 unique=101,347 dup=55 mutfail=0 errors=0 rate=529.2/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=38
+       move_steps add=1,510,470 remove=1,380,818; edge_hist m50:9140,m51:8959,m49:8887,m52:8595,m48:8058
+       profiles (7, 1, 0):9, (6, 1, 0):6, (8, 1, 0):6, (5, 58, 5686):3
+STATUS t=220.1s rounds=912 evaluated=116,736 exact=106,438 nonexact=10,298 unique=106,381 dup=58 mutfail=0 errors=0 rate=530.4/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=38
+       move_steps add=1,584,705 remove=1,448,078; edge_hist m50:9600,m51:9431,m49:9326,m52:9025,m48:8483
+       profiles (7, 1, 0):9, (6, 1, 0):6, (8, 1, 0):6, (5, 58, 5686):3
+STATUS t=230.1s rounds=952 evaluated=121,856 exact=111,069 nonexact=10,787 unique=111,008 dup=62 mutfail=0 errors=0 rate=529.6/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=a9e9ecd3 elite=64 reservoir=2048 low_logged=40
+       move_steps add=1,654,198 remove=1,511,395; edge_hist m50:10023,m51:9862,m49:9745,m52:9417,m48:8895
+       profiles (7, 1, 0):9, (6, 1, 0):6, (8, 1, 0):6, (5, 15, 940):3
+NEW BEST total=6 (+0) weighted=88 C4=5 C8=1 C16=0 m=49 walk=5 +1/-4 hash=6dac96e3 parent=04febd3c
+STATUS t=240.0s rounds=992 evaluated=126,976 exact=115,700 nonexact=11,276 unique=115,635 dup=66 mutfail=0 errors=0 rate=529.0/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=42
+       move_steps add=1,724,031 remove=1,574,853; edge_hist m50:10423,m51:10247,m49:10172,m52:9825,m48:9246
+       profiles (7, 1, 0):9, (6, 1, 0):6, (8, 1, 0):6, (5, 15, 940):3
+STATUS t=250.1s rounds=1033 evaluated=132,224 exact=120,479 nonexact=11,745 unique=120,411 dup=69 mutfail=0 errors=0 rate=528.7/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=43
+       move_steps add=1,795,108 remove=1,640,109; edge_hist m50:10852,m51:10688,m49:10648,m52:10206,m48:9619
+       profiles (7, 1, 0):9, (6, 1, 0):6, (8, 1, 0):6, (5, 15, 940):3
+STATUS t=260.0s rounds=1074 evaluated=137,472 exact=125,241 nonexact=12,231 unique=125,170 dup=72 mutfail=0 errors=0 rate=528.6/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=44
+       move_steps add=1,866,999 remove=1,705,460; edge_hist m50:11308,m51:11102,m49:11057,m52:10594,m48:9984
+       profiles (7, 1, 0):10, (6, 1, 0):6, (8, 1, 0):6, (5, 15, 940):3
+STATUS t=270.0s rounds=1116 evaluated=142,848 exact=130,186 nonexact=12,662 unique=130,115 dup=72 mutfail=0 errors=0 rate=529.1/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=44
+       move_steps add=1,939,729 remove=1,772,248; edge_hist m50:11759,m51:11567,m49:11518,m52:10997,m48:10370
+       profiles (7, 1, 0):10, (6, 1, 0):6, (8, 1, 0):6, (3, 22, 884):4
+STATUS t=280.0s rounds=1157 evaluated=148,096 exact=134,963 nonexact=13,133 unique=134,885 dup=79 mutfail=0 errors=0 rate=528.8/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=46
+       move_steps add=2,010,769 remove=1,836,878; edge_hist m50:12179,m51:12003,m49:11951,m52:11441,m48:10742
+       profiles (7, 1, 0):11, (6, 1, 0):6, (8, 1, 0):6, (3, 23, 1342):4
+STATUS t=290.2s rounds=1198 evaluated=153,344 exact=139,754 nonexact=13,590 unique=139,673 dup=82 mutfail=0 errors=0 rate=528.5/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=46
+       move_steps add=2,082,018 remove=1,901,919; edge_hist m50:12609,m51:12463,m49:12362,m52:11852,m48:11128
+       profiles (7, 1, 0):11, (6, 1, 0):6, (8, 1, 0):6, (3, 23, 1342):4
+STATUS t=300.1s rounds=1238 evaluated=158,464 exact=144,422 nonexact=14,042 unique=144,340 dup=83 mutfail=0 errors=0 rate=528.1/s
+       best TOTAL=6 weighted=88 C4=5 C8=1 C16=0 m=49 hash=6dac96e3 elite=64 reservoir=2048 low_logged=47
+       move_steps add=2,151,097 remove=1,965,100; edge_hist m50:13024,m51:12868,m49:12774,m52:12247,m48:11488
+       profiles (7, 1, 0):11, (6, 1, 0):6, (8, 1, 0):6, (3, 23, 1342):4
+time budget exhausted
+DONE best_total=6 weighted=88 C4=5 C8=1 C16=0 m=49 elapsed=300.11s evaluated=158,464 exact=144,422 hash=6dac96e3
+Best graph saved: /home/user/DEV/graphoratory/random_order_sweep_23_31/order_30/best.json
+Low-TOTAL discoveries: /home/user/DEV/graphoratory/random_order_sweep_23_31/order_30/hits.jsonl
+Final pools saved: /home/user/DEV/graphoratory/random_order_sweep_23_31/order_30/pool.json

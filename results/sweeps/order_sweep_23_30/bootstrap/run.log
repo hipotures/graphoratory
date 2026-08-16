@@ -1,0 +1,167 @@
+HEG stronger local-rewiring probe start=16 target=30 beam=16 workers=16 objective=total
+families=split_spoke,double_hub,switch_spoke step_budget=40.0s total_budget=600.0s node_budget=10,000,000 cap=1,000,000
+All enabled families use Δorder=+1 and Δedges=+2. Two-edge surgeries can destroy multiple old forbidden cycles in one atomic move.
+STEP   N    SCORED/SPACE BEAM        FAMILY              C4(Δ)              C8(Δ)             C16(Δ)               TOTAL(Δ)     TIME STATE
+   0  16               -    1             -                  1                 19                  8                     28    0.00s OK
+   1  17       2202/2202   16  switch_spoke              2(+1)             13(-6)            28(+20)                43(+15)    0.68s OK
+     leader switch_spoke:ad_bc/keep2/sp8 rm[5-6,8-9] x[5,9,8] hash=0cf8baf4
+     GLOBAL exact ΔTOTAL<0: 0/2202; best exact ΔTOTAL=+15 switch_spoke switch_spoke:ad_bc/keep1/sp3 rm[3-4,12-13] x[4,12,3]
+       split_spoke   scored=336     negative=0      best=+26 split_spoke rm[13-14] x[13,14,8]
+       double_hub    scored=228     negative=0      best=+23 double_hub rm[8-9,12-13] x[8,9,12,13]
+       switch_spoke  scored=1638    negative=0      best=+15 switch_spoke:ad_bc/keep1/sp3 rm[3-4,12-13] x[4,12,3]
+     exact ΔCk<=0 candidates: C4:975 C8:779 C16:0
+   2  18     41867/41908   16  switch_spoke              5(+2)             10(-1)             0(-32)                15(-31)    8.60s OK
+     leader switch_spoke:ad_bc/keep2/sp5 rm[4-5,11-12] x[4,12,5] hash=ed0de6d4
+     GLOBAL exact ΔTOTAL<0: 4/41867; best exact ΔTOTAL=-31 switch_spoke switch_spoke:ad_bc/keep2/sp5 rm[4-5,11-12] x[4,12,5]
+       split_spoke   scored=6237    negative=0      best=+19 split_spoke rm[4-12] x[4,12,5]
+       double_hub    scored=4335    negative=0      best=+20 double_hub rm[8-9,11-12] x[8,9,11,12]
+       switch_spoke  scored=31295   negative=4      best=-31 switch_spoke:ad_bc/keep2/sp5 rm[4-5,11-12] x[4,12,5]
+     exact ΔCk<=0 candidates: C4:20575 C8:5105 C16:4
+     structural-invalid=0 duplicate-graphs=41
+     scored 41867/41908 generated mutations before deadline/dedupe
+   3  19     48992/49067   16  switch_spoke              5(+0)              5(-5)              3(+3)                 13(-2)   10.87s OK
+     leader switch_spoke:ad_bc/keep1/sp1 rm[1-13,14-15] x[13,14,1] hash=cda73dc6
+     GLOBAL exact ΔTOTAL<0: 228/48992; best exact ΔTOTAL=-39 switch_spoke switch_spoke:ac_bd/keep2/sp13 rm[1-13,3-4] x[1,3,13]
+       split_spoke   scored=7163    negative=0      best=+0 split_spoke rm[10-17] x[10,17,11]
+       double_hub    scored=5076    negative=13     best=-36 double_hub rm[4-5,12-17] x[4,5,12,17]
+       switch_spoke  scored=36753   negative=215    best=-39 switch_spoke:ac_bd/keep2/sp13 rm[1-13,3-4] x[1,3,13]
+     exact ΔCk<=0 candidates: C4:27504 C8:2494 C16:3505
+     structural-invalid=0 duplicate-graphs=75
+     scored 48992/49067 generated mutations before deadline/dedupe
+   4  20     56678/56792   16  switch_spoke              2(-2)             11(+0)              0(+0)                 13(-2)   13.28s OK
+     leader switch_spoke:ad_bc/keep1/sp1 rm[1-2,6-7] x[2,6,1] hash=109e8434
+     GLOBAL exact ΔTOTAL<0: 33/56678; best exact ΔTOTAL=-2 switch_spoke switch_spoke:ad_bc/keep1/sp1 rm[1-2,6-7] x[2,6,1]
+       split_spoke   scored=8154    negative=0      best=+0 split_spoke rm[9-10] x[9,10,11]
+       double_hub    scored=5879    negative=1      best=-1 double_hub rm[1-13,17-18] x[1,13,17,18]
+       switch_spoke  scored=42645   negative=32     best=-2 switch_spoke:ad_bc/keep1/sp1 rm[1-2,6-7] x[2,6,1]
+     exact ΔCk<=0 candidates: C4:35884 C8:2244 C16:8132
+     structural-invalid=0 duplicate-graphs=114
+     scored 56678/56792 generated mutations before deadline/dedupe
+   5  21     64984/65138   16  switch_spoke              3(-2)              8(+0)              0(+0)                 11(-2)   15.28s OK
+     leader switch_spoke:ad_bc/keep1/sp1 rm[1-16,6-15] x[6,16,1] hash=7619d78c
+     GLOBAL exact ΔTOTAL<0: 57/64984; best exact ΔTOTAL=-2 double_hub double_hub rm[0-7,8-19] x[0,7,8,19]
+       split_spoke   scored=9211    negative=0      best=+1 split_spoke rm[1-16] x[1,16,15]
+       double_hub    scored=6750    negative=12     best=-2 double_hub rm[0-7,8-19] x[0,7,8,19]
+       switch_spoke  scored=49023   negative=45     best=-2 switch_spoke:ac_bd/keep2/sp7 rm[6-7,8-19] x[6,8,7]
+     exact ΔCk<=0 candidates: C4:35367 C8:204 C16:29258
+     structural-invalid=0 duplicate-graphs=154
+     scored 64984/65138 generated mutations before deadline/dedupe
+   6  22     74171/74315   16   split_spoke              3(+0)             12(+4)              0(+0)                 15(+4)   17.74s OK
+     leader split_spoke rm[12-18] x[12,18,11] hash=0541a7ba
+     GLOBAL exact ΔTOTAL<0: 0/74171; best exact ΔTOTAL=+4 split_spoke split_spoke rm[4-12] x[4,12,11]
+       split_spoke   scored=10328   negative=0      best=+4 split_spoke rm[4-12] x[4,12,11]
+       double_hub    scored=7694    negative=0      best=+6 double_hub rm[4-18,11-12] x[4,18,11,12]
+       switch_spoke  scored=56149   negative=0      best=+4 switch_spoke:ad_bc/keep1/sp5 rm[5-10,11-18] x[10,11,5]
+     exact ΔCk<=0 candidates: C4:40534 C8:175 C16:4094
+     structural-invalid=0 duplicate-graphs=144
+     scored 74171/74315 generated mutations before deadline/dedupe
+   7  23     83760/83895   16    double_hub              5(+1)              5(-4)              0(-2)                 10(-5)   20.68s OK
+     leader double_hub rm[2-3,14-21] x[2,3,14,21] hash=081cf148
+     GLOBAL exact ΔTOTAL<0: 21/83760; best exact ΔTOTAL=-5 double_hub double_hub rm[2-3,14-21] x[2,3,14,21]
+       split_spoke   scored=11515   negative=0      best=+3 split_spoke rm[1-2] x[1,2,14]
+       double_hub    scored=8683    negative=3      best=-5 double_hub rm[2-3,14-21] x[2,3,14,21]
+       switch_spoke  scored=63562   negative=18     best=-5 switch_spoke:ad_bc/keep1/sp21 rm[2-3,5-21] x[3,5,21]
+     exact ΔCk<=0 candidates: C4:37440 C8:312 C16:6089
+     structural-invalid=0 duplicate-graphs=135
+     scored 83760/83895 generated mutations before deadline/dedupe
+   8  24     94380/94504   16  switch_spoke              5(+1)              4(-4)              0(+0)                  9(-3)   24.13s OK
+     leader switch_spoke:ac_bd/keep2/sp21 rm[2-22,3-21] x[2,3,21] hash=09ab5095
+     GLOBAL exact ΔTOTAL<0: 9/94380; best exact ΔTOTAL=-3 switch_spoke switch_spoke:ac_bd/keep2/sp21 rm[2-22,3-21] x[2,3,21]
+       split_spoke   scored=12766   negative=0      best=+1 split_spoke rm[12-22] x[12,22,3]
+       double_hub    scored=9755    negative=0      best=+1 double_hub rm[1-22,2-8] x[1,22,2,8]
+       switch_spoke  scored=71859   negative=9      best=-3 switch_spoke:ac_bd/keep2/sp21 rm[2-22,3-21] x[2,3,21]
+     exact ΔCk<=0 candidates: C4:48819 C8:659 C16:30520
+     structural-invalid=0 duplicate-graphs=124
+     scored 94380/94504 generated mutations before deadline/dedupe
+   9  25   105313/105384   16    double_hub              7(+2)              1(-3)              0(+0)                  8(-1)   27.58s OK
+     leader double_hub rm[2-8,3-12] x[2,8,3,12] hash=04cedee1
+     GLOBAL exact ΔTOTAL<0: 9/105313; best exact ΔTOTAL=-1 double_hub double_hub rm[2-8,3-12] x[2,8,3,12]
+       split_spoke   scored=14078   negative=0      best=+1 split_spoke rm[22-23] x[22,23,21]
+       double_hub    scored=10883   negative=3      best=-1 double_hub rm[2-8,3-12] x[2,8,3,12]
+       switch_spoke  scored=80352   negative=6      best=-1 switch_spoke:ad_bc/keep2/sp3 rm[2-8,3-21] x[2,21,3]
+     exact ΔCk<=0 candidates: C4:56751 C8:787 C16:21216
+     structural-invalid=0 duplicate-graphs=71
+     scored 105313/105384 generated mutations before deadline/dedupe
+  10  26   116547/116692   16   split_spoke              7(+0)              1(+0)              0(+0)                  8(+0)   31.12s OK
+     leader split_spoke rm[12-21] x[12,21,2] hash=07a89f61
+     GLOBAL exact ΔTOTAL<0: 0/116547; best exact ΔTOTAL=+0 switch_spoke switch_spoke:ac_bd/keep2/sp21 rm[2-24,5-21] x[2,5,21]
+       split_spoke   scored=15445   negative=0      best=+0 split_spoke rm[5-8] x[5,8,21]
+       double_hub    scored=12065   negative=0      best=+6 double_hub rm[4-18,11-12] x[4,18,11,12]
+       switch_spoke  scored=89037   negative=0      best=+0 switch_spoke:ac_bd/keep2/sp21 rm[2-24,5-21] x[2,5,21]
+     exact ΔCk<=0 candidates: C4:64991 C8:277 C16:4549
+     structural-invalid=0 duplicate-graphs=145
+     scored 116547/116692 generated mutations before deadline/dedupe
+  11  27   128653/128830   16   split_spoke              7(+0)              5(+4)              0(+0)                 12(+4)   35.59s OK
+     leader split_spoke rm[12-18] x[12,18,11] hash=03945298
+     GLOBAL exact ΔTOTAL<0: 0/128653; best exact ΔTOTAL=+4 switch_spoke switch_spoke:ad_bc/keep2/sp24 rm[12-24,21-25] x[12,25,24]
+       split_spoke   scored=16877   negative=0      best=+4 split_spoke rm[12-18] x[12,18,11]
+       double_hub    scored=13313   negative=0      best=+6 double_hub rm[4-12,11-18] x[4,12,11,18]
+       switch_spoke  scored=98463   negative=0      best=+4 switch_spoke:ad_bc/keep2/sp24 rm[12-24,21-25] x[12,25,24]
+     exact ΔCk<=0 candidates: C4:73959 C8:49 C16:4598
+     structural-invalid=0 duplicate-graphs=177
+     scored 128653/128830 generated mutations before deadline/dedupe
+  12  28   141596/141644   16  switch_spoke              8(+1)              8(+3)              0(+0)                 16(+4)   40.78s OK
+     leader switch_spoke:ad_bc/keep2/sp24 rm[12-24,21-25] x[12,25,24] hash=1063e271
+     GLOBAL exact ΔTOTAL<0: 0/141596; best exact ΔTOTAL=+4 switch_spoke switch_spoke:ad_bc/keep2/sp24 rm[12-24,21-25] x[12,25,24]
+       split_spoke   scored=18394   negative=0      best=+8 split_spoke rm[4-12] x[4,12,11]
+       double_hub    scored=14639   negative=0      best=+9 double_hub rm[4-12,18-26] x[4,12,18,26]
+       switch_spoke  scored=108563  negative=0      best=+4 switch_spoke:ad_bc/keep2/sp24 rm[12-24,21-25] x[12,25,24]
+     exact ΔCk<=0 candidates: C4:79145 C8:0 C16:6977
+     structural-invalid=0 duplicate-graphs=48
+     scored 141596/141644 generated mutations before deadline/dedupe
+  13  29   154479/155036   16    double_hub              9(+1)              8(+0)              0(+0)                 17(+1)   46.77s OK
+     leader double_hub rm[2-25,5-27] x[2,25,5,27] hash=07e74ec0
+     GLOBAL exact ΔTOTAL<0: 0/154479; best exact ΔTOTAL=+1 double_hub double_hub rm[2-25,5-27] x[2,25,5,27]
+       split_spoke   scored=19966   negative=0      best=+1 split_spoke rm[21-25] x[21,25,27]
+       double_hub    scored=15999   negative=0      best=+1 double_hub rm[2-25,5-27] x[2,25,5,27]
+       switch_spoke  scored=118514  negative=0      best=+2 switch_spoke:ac_bd/keep1/sp12 rm[3-25,12-27] x[25,27,12]
+     exact ΔCk<=0 candidates: C4:88071 C8:710 C16:15716
+     structural-invalid=0 duplicate-graphs=29
+     scored 154479/155036 generated mutations before deadline/dedupe
+     submitted=154483; 4 did not contribute a completed unique score
+  14  30   151435/169172   16   split_spoke             10(+1)              8(+0)              0(+0)                 18(+1)   47.12s OK
+     leader split_spoke rm[25-28] x[25,28,12] hash=015baec6
+     GLOBAL exact ΔTOTAL<0: 0/151435; best exact ΔTOTAL=+1 split_spoke split_spoke rm[25-28] x[25,28,12]
+       split_spoke   scored=21599   negative=0      best=+1 split_spoke rm[25-28] x[25,28,12]
+       double_hub    scored=17454   negative=0      best=+1 double_hub rm[12-27,25-28] x[12,27,25,28]
+       switch_spoke  scored=112382  negative=0      best=+1 switch_spoke:ac_bd/keep1/sp12 rm[12-28,25-27] x[27,28,12]
+     exact ΔCk<=0 candidates: C4:88779 C8:1097 C16:18321
+     structural-invalid=0 duplicate-graphs=46
+     scored 151435/169172 generated mutations before deadline/dedupe
+     submitted=151436; 1 did not contribute a completed unique score
+Final leader saved: order_sweep_23_30/bootstrap/rewire2_final.json
+Final lineage saved: order_sweep_23_30/bootstrap/rewire2_lineage.json
+
+FINAL STRONG-REWIRE LINEAGE steps=14 order=16->30
+  N        FAMILY              C4(Δ)              C8(Δ)             C16(Δ)               TOTAL(Δ)     HASH STATE
+ 16             -                  1                 19                  8                     28 6681e8c6 OK
+ 17  switch_spoke              3(+2)             11(-8)            32(+24)                46(+18) 3d3635d5 OK
+     switch_spoke:ad_bc/keep1/sp5 rm[5-6,8-9] x[6,8,5]
+ 18  switch_spoke              5(+2)             12(+1)             34(+2)                 51(+5) 6f3626f9 OK
+     switch_spoke:ac_bd/keep1/sp12 rm[5-16,12-13] x[13,16,12]
+ 19  switch_spoke              4(-1)             11(-1)             0(-34)                15(-36) e6bf28a8 OK
+     switch_spoke:ad_bc/keep1/sp12 rm[3-4,11-12] x[4,11,12]
+ 20  switch_spoke              5(+1)              8(-3)              0(+0)                 13(-2) ea827c38 OK
+     switch_spoke:ac_bd/keep1/sp1 rm[1-13,16-17] x[13,17,1]
+ 21  switch_spoke              3(-2)              8(+0)              0(+0)                 11(-2) 8c70b9d6 OK
+     switch_spoke:ad_bc/keep1/sp1 rm[1-16,6-15] x[6,16,1]
+ 22  switch_spoke              4(+1)              9(+1)              2(+2)                 15(+4) 76e4ad6d OK
+     switch_spoke:ac_bd/keep2/sp14 rm[3-14,12-17] x[3,12,14]
+ 23  switch_spoke              4(+0)              8(-1)              0(-2)                 12(-3) 93068ff1 OK
+     switch_spoke:ad_bc/keep1/sp1 rm[1-2,8-16] x[2,8,1]
+ 24  switch_spoke              5(+1)              4(-4)              0(+0)                  9(-3) ee18858b OK
+     switch_spoke:ad_bc/keep1/sp21 rm[2-22,14-21] x[14,22,21]
+ 25    double_hub              7(+2)              1(-3)              0(+0)                  8(-1) 78f69602 OK
+     double_hub rm[2-8,3-12] x[2,8,3,12]
+ 26   split_spoke              7(+0)              1(+0)              0(+0)                  8(+0) 5ba52272 OK
+     split_spoke rm[12-24] x[12,24,21]
+ 27   split_spoke              7(+0)              5(+4)              0(+0)                 12(+4) 469703da OK
+     split_spoke rm[12-18] x[12,18,11]
+ 28  switch_spoke              8(+1)              8(+3)              0(+0)                 16(+4) 4095b231 OK
+     switch_spoke:ad_bc/keep2/sp21 rm[12-21,24-25] x[12,25,21]
+ 29   split_spoke              9(+1)              8(+0)              0(+0)                 17(+1) 0930c067 OK
+     split_spoke rm[21-25] x[21,25,27]
+ 30   split_spoke             10(+1)              8(+0)              0(+0)                 18(+1) 015baec6 OK
+     split_spoke rm[25-28] x[25,28,12]
+Lineage summary: negative exact ΔTOTAL steps=6/14; cumulative TOTAL change=-10; families=split_spoke:4 double_hub:1 switch_spoke:9
+Done order=30 beam=16 total=18 elapsed=388.24s hash=015baec6
