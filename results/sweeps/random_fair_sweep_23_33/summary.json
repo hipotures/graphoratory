@@ -1,0 +1,113 @@
+{
+  "mutation": "cycle_blind_ADD_REMOVE_legal_walk",
+  "orders": [
+    23,
+    24,
+    25
+  ],
+  "parent_selection": {
+    "elite_parent_probability": 0.0,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05
+  },
+  "results": [
+    {
+      "best_components": {
+        "16": 3,
+        "4": 5,
+        "8": 7
+      },
+      "best_edge_count": 36,
+      "best_graph": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_23/best.json",
+      "best_hash": "7ea61bbf524f60f9da2415dad17a0160f22a6907406d979c270d2f2b7adfd030",
+      "best_total": 15,
+      "best_weighted": 148,
+      "child_exit_code": 0,
+      "elapsed_seconds": 450.98876246500004,
+      "evaluated": 272128,
+      "exact": 254489,
+      "hits_log": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_23/hits.jsonl",
+      "initial_total": 387,
+      "order": 23,
+      "pool_file": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_23/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_23/run.log",
+      "seed": {
+        "edge_count": 35,
+        "order": 23,
+        "path": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_23/random_fresh_seed.json",
+        "reported_total": null,
+        "reported_weighted": null,
+        "source": "generated-random-minimal"
+      },
+      "status": "OK"
+    },
+    {
+      "best_components": {
+        "16": 0,
+        "4": 6,
+        "8": 17
+      },
+      "best_edge_count": 37,
+      "best_graph": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_24/best.json",
+      "best_hash": "467f309ab376f7a8f8764a1a02ad79b8adcd2ab693a41a8d59bb5d52e3a96251",
+      "best_total": 23,
+      "best_weighted": 232,
+      "child_exit_code": 0,
+      "elapsed_seconds": 450.9325720380002,
+      "evaluated": 261632,
+      "exact": 243336,
+      "hits_log": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_24/hits.jsonl",
+      "initial_total": 268,
+      "order": 24,
+      "pool_file": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_24/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_24/run.log",
+      "seed": {
+        "edge_count": 36,
+        "order": 24,
+        "path": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_24/random_fresh_seed.json",
+        "reported_total": null,
+        "reported_weighted": null,
+        "source": "generated-random-minimal"
+      },
+      "status": "OK"
+    },
+    {
+      "best_components": {
+        "16": 0,
+        "4": 5,
+        "8": 25
+      },
+      "best_edge_count": 39,
+      "best_graph": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_25/best.json",
+      "best_hash": "d8e832a70e19c5f6c76678ccfec6dec380d8b1341ecf0dcda6ca5f9d66d8fe06",
+      "best_total": 30,
+      "best_weighted": 280,
+      "child_exit_code": 0,
+      "elapsed_seconds": 451.1838573219975,
+      "evaluated": 265472,
+      "exact": 247530,
+      "hits_log": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_25/hits.jsonl",
+      "initial_total": 544,
+      "order": 25,
+      "pool_file": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_25/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_25/run.log",
+      "seed": {
+        "edge_count": 38,
+        "order": 25,
+        "path": "/home/user/DEV/graphoratory/random_fair_sweep_23_33/order_25/random_fresh_seed.json",
+        "reported_total": null,
+        "reported_weighted": null,
+        "source": "generated-random-minimal"
+      },
+      "status": "OK"
+    }
+  ],
+  "schema_version": "heg.random_fair_sweep.v1",
+  "scoring": {
+    "exact_only_for_T": true,
+    "node_budget": 10000000,
+    "witness_cap": 1000000
+  },
+  "seconds_per_order": 450.0,
+  "start_policy": "random_configuration_minimum_edge_per_order"
+}

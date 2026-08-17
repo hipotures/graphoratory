@@ -1,0 +1,242 @@
+{
+  "edges": [
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      16
+    ],
+    [
+      1,
+      7
+    ],
+    [
+      1,
+      23
+    ],
+    [
+      1,
+      26
+    ],
+    [
+      2,
+      13
+    ],
+    [
+      2,
+      17
+    ],
+    [
+      2,
+      25
+    ],
+    [
+      3,
+      7
+    ],
+    [
+      3,
+      14
+    ],
+    [
+      3,
+      24
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      17
+    ],
+    [
+      5,
+      9
+    ],
+    [
+      5,
+      11
+    ],
+    [
+      5,
+      22
+    ],
+    [
+      6,
+      21
+    ],
+    [
+      7,
+      23
+    ],
+    [
+      8,
+      12
+    ],
+    [
+      8,
+      15
+    ],
+    [
+      8,
+      25
+    ],
+    [
+      9,
+      18
+    ],
+    [
+      9,
+      22
+    ],
+    [
+      10,
+      11
+    ],
+    [
+      10,
+      18
+    ],
+    [
+      10,
+      20
+    ],
+    [
+      11,
+      20
+    ],
+    [
+      12,
+      19
+    ],
+    [
+      12,
+      25
+    ],
+    [
+      13,
+      17
+    ],
+    [
+      13,
+      21
+    ],
+    [
+      14,
+      24
+    ],
+    [
+      14,
+      26
+    ],
+    [
+      15,
+      22
+    ],
+    [
+      15,
+      27
+    ],
+    [
+      16,
+      19
+    ],
+    [
+      16,
+      27
+    ],
+    [
+      18,
+      20
+    ],
+    [
+      19,
+      27
+    ],
+    [
+      21,
+      24
+    ],
+    [
+      23,
+      26
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 16903,
+    "elapsed_seconds": 450.1017106010004,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 566725,
+    "exact": 558459,
+    "expected_order": 28,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 8266,
+    "phase_seconds": 15.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 27,
+        "evaluated": 394309,
+        "exact": 392834,
+        "unique_exact": 377063
+      },
+      "RANDOM": {
+        "best_improvements": 3,
+        "evaluated": 172416,
+        "exact": 165625,
+        "unique_exact": 164552
+      }
+    },
+    "pid": 12870,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 4428,
+    "seed": 7947707218,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "5ac6fbd83007d4a0216244665f75a3f448c7a62283483625c1b68831a9b4aed4",
+  "order": 28,
+  "random_walk": {
+    "add_steps": 4,
+    "parent_hash": "491640315a0d283cbc9c19535825477272a6a74a90cf4e3ee272cbd548b8b3e8",
+    "remove_steps": 5,
+    "seed": 2396222433084506562,
+    "walk_steps": 9
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 2,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 1,
+        "status": "EXACT"
+      }
+    },
+    "total": 3,
+    "weighted": 40
+  }
+}

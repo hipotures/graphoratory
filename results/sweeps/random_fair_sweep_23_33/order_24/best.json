@@ -1,0 +1,206 @@
+{
+  "edges": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      12
+    ],
+    [
+      1,
+      5
+    ],
+    [
+      1,
+      13
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      2,
+      12
+    ],
+    [
+      2,
+      14
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      10
+    ],
+    [
+      3,
+      13
+    ],
+    [
+      3,
+      15
+    ],
+    [
+      4,
+      16
+    ],
+    [
+      4,
+      17
+    ],
+    [
+      4,
+      20
+    ],
+    [
+      5,
+      6
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      6,
+      10
+    ],
+    [
+      7,
+      11
+    ],
+    [
+      7,
+      19
+    ],
+    [
+      8,
+      11
+    ],
+    [
+      8,
+      18
+    ],
+    [
+      9,
+      15
+    ],
+    [
+      9,
+      21
+    ],
+    [
+      9,
+      23
+    ],
+    [
+      10,
+      18
+    ],
+    [
+      11,
+      19
+    ],
+    [
+      12,
+      14
+    ],
+    [
+      13,
+      19
+    ],
+    [
+      14,
+      18
+    ],
+    [
+      15,
+      21
+    ],
+    [
+      16,
+      17
+    ],
+    [
+      16,
+      20
+    ],
+    [
+      17,
+      22
+    ],
+    [
+      20,
+      23
+    ],
+    [
+      21,
+      22
+    ],
+    [
+      22,
+      23
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 826,
+    "elapsed_seconds": 450.02626180399966,
+    "elite_parent_probability": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 261632,
+    "exact": 243336,
+    "expected_order": 24,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 18296,
+    "pid": 11141,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 2044,
+    "seed": 7943707206,
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "467f309ab376f7a8f8764a1a02ad79b8adcd2ab693a41a8d59bb5d52e3a96251",
+  "order": 24,
+  "random_walk": {
+    "add_steps": 20,
+    "parent_hash": "c717f5c3606d5d2eee14b174c580ecb77846adafe789d0a2d0d80bfe7c85c059",
+    "remove_steps": 22,
+    "seed": 859196797414618389,
+    "walk_steps": 42
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 6,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 17,
+        "status": "EXACT"
+      }
+    },
+    "total": 23,
+    "weighted": 232
+  }
+}

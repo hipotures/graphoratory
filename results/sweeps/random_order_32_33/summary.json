@@ -1,0 +1,83 @@
+{
+  "mutation": "cycle_blind_ADD_REMOVE_legal_walk",
+  "orders": [
+    32,
+    33
+  ],
+  "parent_selection": {
+    "elite_parent_probability": 0.0,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05
+  },
+  "results": [
+    {
+      "best_components": {
+        "16": 21,
+        "32": 5,
+        "4": 13,
+        "8": 14
+      },
+      "best_edge_count": 49,
+      "best_graph": "/home/user/DEV/graphoratory/random_order_32_33/order_32/best.json",
+      "best_hash": "16ea38f89bb6e19c1f50053bc6bf5a79e9b2f10f08ce934b2f1d0c222849ac31",
+      "best_total": 53,
+      "best_weighted": 414,
+      "child_exit_code": 0,
+      "elapsed_seconds": 300.9087032620009,
+      "evaluated": 61439,
+      "exact": 32393,
+      "hits_log": "/home/user/DEV/graphoratory/random_order_32_33/order_32/hits.jsonl",
+      "initial_total": 65,
+      "order": 32,
+      "pool_file": "/home/user/DEV/graphoratory/random_order_32_33/order_32/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/random_order_32_33/order_32/run.log",
+      "seed": {
+        "edge_count": 48,
+        "order": 32,
+        "path": "/home/user/DEV/graphoratory/random_order_32_33/order_32/generated_seed.json",
+        "reported_total": null,
+        "reported_weighted": null,
+        "source": "generated"
+      },
+      "status": "OK"
+    },
+    {
+      "best_components": {
+        "16": 13,
+        "32": 18,
+        "4": 14,
+        "8": 18
+      },
+      "best_edge_count": 50,
+      "best_graph": "/home/user/DEV/graphoratory/random_order_32_33/order_33/best.json",
+      "best_hash": "e51df5419d5f71b06c822b658c5822043ffc29ff17a4895a4e85fb0569c878e7",
+      "best_total": 63,
+      "best_weighted": 456,
+      "child_exit_code": 0,
+      "elapsed_seconds": 301.363796955,
+      "evaluated": 56704,
+      "exact": 25170,
+      "hits_log": "/home/user/DEV/graphoratory/random_order_32_33/order_33/hits.jsonl",
+      "initial_total": 73,
+      "order": 33,
+      "pool_file": "/home/user/DEV/graphoratory/random_order_32_33/order_33/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/random_order_32_33/order_33/run.log",
+      "seed": {
+        "edge_count": 50,
+        "order": 33,
+        "path": "/home/user/DEV/graphoratory/random_order_32_33/order_33/generated_seed.json",
+        "reported_total": null,
+        "reported_weighted": null,
+        "source": "generated"
+      },
+      "status": "OK"
+    }
+  ],
+  "schema_version": "heg.random_order_sweep.v1",
+  "scoring": {
+    "exact_only_for_T": true,
+    "node_budget": 10000000,
+    "witness_cap": 1000000
+  },
+  "seconds_per_order": 300.0
+}

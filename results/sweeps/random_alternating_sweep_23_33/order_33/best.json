@@ -1,0 +1,278 @@
+{
+  "edges": [
+    [
+      0,
+      13
+    ],
+    [
+      0,
+      22
+    ],
+    [
+      0,
+      29
+    ],
+    [
+      1,
+      19
+    ],
+    [
+      1,
+      27
+    ],
+    [
+      1,
+      32
+    ],
+    [
+      2,
+      25
+    ],
+    [
+      2,
+      29
+    ],
+    [
+      2,
+      31
+    ],
+    [
+      3,
+      17
+    ],
+    [
+      3,
+      23
+    ],
+    [
+      3,
+      25
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      4,
+      20
+    ],
+    [
+      4,
+      26
+    ],
+    [
+      5,
+      12
+    ],
+    [
+      5,
+      14
+    ],
+    [
+      5,
+      18
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      6,
+      16
+    ],
+    [
+      6,
+      23
+    ],
+    [
+      6,
+      30
+    ],
+    [
+      7,
+      19
+    ],
+    [
+      7,
+      28
+    ],
+    [
+      8,
+      11
+    ],
+    [
+      8,
+      22
+    ],
+    [
+      9,
+      10
+    ],
+    [
+      9,
+      14
+    ],
+    [
+      9,
+      30
+    ],
+    [
+      10,
+      15
+    ],
+    [
+      10,
+      18
+    ],
+    [
+      11,
+      24
+    ],
+    [
+      11,
+      28
+    ],
+    [
+      12,
+      14
+    ],
+    [
+      12,
+      15
+    ],
+    [
+      13,
+      21
+    ],
+    [
+      13,
+      31
+    ],
+    [
+      15,
+      18
+    ],
+    [
+      16,
+      17
+    ],
+    [
+      16,
+      21
+    ],
+    [
+      17,
+      23
+    ],
+    [
+      19,
+      32
+    ],
+    [
+      20,
+      24
+    ],
+    [
+      20,
+      26
+    ],
+    [
+      21,
+      25
+    ],
+    [
+      22,
+      30
+    ],
+    [
+      24,
+      26
+    ],
+    [
+      27,
+      28
+    ],
+    [
+      27,
+      32
+    ],
+    [
+      29,
+      31
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 431,
+    "elapsed_seconds": 450.2583189290017,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 106496,
+    "exact": 66243,
+    "expected_order": 33,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 40253,
+    "phase_seconds": 15.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 34,
+        "evaluated": 61568,
+        "exact": 43246,
+        "unique_exact": 42921
+      },
+      "RANDOM": {
+        "best_improvements": 8,
+        "evaluated": 44928,
+        "exact": 22997,
+        "unique_exact": 22891
+      }
+    },
+    "pid": 13875,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 832,
+    "seed": 7952707233,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "dc474bb93909ef665a70a3d34c3706d44b790f866f43fd8e368b62aa7bac8dfe",
+  "order": 33,
+  "random_walk": {
+    "add_steps": 5,
+    "parent_hash": "83f40a60b6d4cee1fe33551efca6b15890aadd6a86b8825682bc2d567c5c6a5f",
+    "remove_steps": 5,
+    "seed": 4054129518269440123,
+    "walk_steps": 10
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "32": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 6,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 1,
+        "status": "EXACT"
+      }
+    },
+    "total": 7,
+    "weighted": 104
+  }
+}

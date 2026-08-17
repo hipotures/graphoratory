@@ -1,0 +1,209 @@
+{
+  "edges": [
+    [
+      0,
+      10
+    ],
+    [
+      0,
+      16
+    ],
+    [
+      0,
+      17
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      8
+    ],
+    [
+      1,
+      21
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      2,
+      24
+    ],
+    [
+      3,
+      10
+    ],
+    [
+      3,
+      12
+    ],
+    [
+      3,
+      19
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      20
+    ],
+    [
+      5,
+      6
+    ],
+    [
+      5,
+      24
+    ],
+    [
+      6,
+      11
+    ],
+    [
+      7,
+      17
+    ],
+    [
+      7,
+      22
+    ],
+    [
+      7,
+      25
+    ],
+    [
+      8,
+      18
+    ],
+    [
+      9,
+      15
+    ],
+    [
+      9,
+      20
+    ],
+    [
+      9,
+      21
+    ],
+    [
+      10,
+      12
+    ],
+    [
+      11,
+      18
+    ],
+    [
+      11,
+      22
+    ],
+    [
+      12,
+      17
+    ],
+    [
+      12,
+      23
+    ],
+    [
+      13,
+      14
+    ],
+    [
+      13,
+      15
+    ],
+    [
+      13,
+      22
+    ],
+    [
+      14,
+      20
+    ],
+    [
+      14,
+      24
+    ],
+    [
+      15,
+      25
+    ],
+    [
+      16,
+      19
+    ],
+    [
+      16,
+      23
+    ],
+    [
+      18,
+      22
+    ],
+    [
+      19,
+      23
+    ],
+    [
+      21,
+      25
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "elite_parent_probability": 0.0,
+    "elite_size": 64,
+    "expected_order": 26,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "node_budget": 10000000,
+    "pid": 11538,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "seed": 7945707212,
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "170fe06ec9cbc031f8ad2e5216a2b141d71729f6fa6d37ce747958b7cdad3b87",
+  "order": 26,
+  "random_walk": {
+    "add_steps": 8,
+    "parent_hash": "c43c2141e7cc20b1afc5648d2e49a12c375def8c0dbd046dd88b07e045aa168c",
+    "remove_steps": 10,
+    "seed": 9191326652935926447,
+    "walk_steps": 18
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 52,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 3,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 20,
+        "status": "EXACT"
+      }
+    },
+    "total": 75,
+    "weighted": 416
+  }
+}

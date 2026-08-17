@@ -1,0 +1,254 @@
+{
+  "edges": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      15
+    ],
+    [
+      1,
+      13
+    ],
+    [
+      1,
+      15
+    ],
+    [
+      1,
+      16
+    ],
+    [
+      1,
+      19
+    ],
+    [
+      1,
+      22
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      21
+    ],
+    [
+      2,
+      24
+    ],
+    [
+      3,
+      21
+    ],
+    [
+      3,
+      24
+    ],
+    [
+      4,
+      10
+    ],
+    [
+      4,
+      18
+    ],
+    [
+      4,
+      26
+    ],
+    [
+      5,
+      9
+    ],
+    [
+      5,
+      10
+    ],
+    [
+      5,
+      12
+    ],
+    [
+      5,
+      25
+    ],
+    [
+      5,
+      27
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      6,
+      16
+    ],
+    [
+      6,
+      20
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      7,
+      20
+    ],
+    [
+      8,
+      22
+    ],
+    [
+      8,
+      24
+    ],
+    [
+      9,
+      10
+    ],
+    [
+      9,
+      11
+    ],
+    [
+      11,
+      18
+    ],
+    [
+      11,
+      26
+    ],
+    [
+      12,
+      25
+    ],
+    [
+      12,
+      29
+    ],
+    [
+      13,
+      17
+    ],
+    [
+      13,
+      19
+    ],
+    [
+      14,
+      15
+    ],
+    [
+      14,
+      17
+    ],
+    [
+      14,
+      23
+    ],
+    [
+      16,
+      20
+    ],
+    [
+      17,
+      19
+    ],
+    [
+      18,
+      26
+    ],
+    [
+      21,
+      23
+    ],
+    [
+      21,
+      28
+    ],
+    [
+      21,
+      29
+    ],
+    [
+      22,
+      23
+    ],
+    [
+      25,
+      27
+    ],
+    [
+      27,
+      28
+    ],
+    [
+      28,
+      29
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 83,
+    "elapsed_seconds": 300.1107753470005,
+    "elite_parent_probability": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 158464,
+    "exact": 144422,
+    "expected_order": 30,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 14042,
+    "pid": 9912,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 1238,
+    "seed": 30240906,
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "6dac96e33beaec23c23434d8553a87d164c34512a9c399bab7fdb9e842a83770",
+  "order": 30,
+  "random_walk": {
+    "add_steps": 1,
+    "parent_hash": "04febd3c9ba915a53c8de663480bf9d5b0a804e53b7a3b976aea9c6c4fd3e24b",
+    "remove_steps": 4,
+    "seed": 5834380152391293181,
+    "walk_steps": 5
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 5,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 1,
+        "status": "EXACT"
+      }
+    },
+    "total": 6,
+    "weighted": 88
+  }
+}
