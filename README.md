@@ -18,6 +18,12 @@ where the minimum is taken over all simple, connected `n`-vertex graphs with min
 degree at least three, and `C_l(G)` is the number of cycles of length `l`.
 A counterexample to the conjecture would have `F(n) = 0` for some `n`.
 
+Detailed research notes:
+
+- [Current computational status and constructive/exact bounds](docs/research/HEG_COMPUTATIONAL_STATUS_2026-08-17.md)
+- [Residual C4 separation at order 32](docs/research/HEG_C4_SEPARATION_N32.md)
+- [Reproduction audit of Pirzada–Shah–Baskoro (2022)](results/literature/pirzada_2022/PIRZADA_2022_REPRODUCTION_AUDIT_EN.md)
+
 For heuristic searches, the table reports `T(n)`, the smallest value found so far.
 Therefore `T(n)` is only an upper bound on `F(n)`. The only values currently certified
 exact are `F(10)` and `F(11)`, obtained by exhaustive non-isomorphic generation with
@@ -70,7 +76,8 @@ so long runs remain stable instead of accumulating tens of millions of Python se
 entries.
 
 The strongest result in the currently explored `n >= 32` range is
-`T(34) <= 3` with profile `(3,0,0,0)`. At order 32, two distinct total-4 profile classes
+`T(34) <= 3` with profile `(3,0,0,0)`. A 50-million-candidate confirmatory run at
+`n=34` did not improve this incumbent. At order 32, two distinct total-4 profile classes
 have been observed: `(3,1,0,0)` and `(4,0,0,0)`; the former is preferred by the current
 weighted tie-break but the latter is also repeatedly reachable. Orders 21 and 22 have
 not yet been included in these calibration/search campaigns.
