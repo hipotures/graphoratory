@@ -5,6 +5,80 @@ validated workspace graphs, and assigning a fixed graph subset to an independent
 The `graphlab` command is intentionally thin; its operations call reusable application
 services.
 
+## Current Erdős–Gyárfás results
+
+The repository is also being used as an experimental laboratory for the
+Erdős–Gyárfás conjecture. For a graph order `n`, define
+
+\[
+F(n) = \min_G \sum_{2^k \le n} C_{2^k}(G),
+\]
+
+where the minimum is taken over all simple, connected `n`-vertex graphs with minimum
+degree at least three, and `C_l(G)` is the number of cycles of length `l`.
+A counterexample to the conjecture would have `F(n) = 0` for some `n`.
+
+For heuristic searches, the table reports `T(n)`, the smallest value found so far.
+Therefore `T(n)` is only an upper bound on `F(n)`. The only values currently certified
+exact are `F(10)` and `F(11)`, obtained by exhaustive non-isomorphic generation with
+`nauty/geng` and exact cycle counting. Profiles are listed in increasing forbidden-cycle
+length order: `(C4,C8)` below 16, `(C4,C8,C16)` for 16--31, and
+`(C4,C8,C16,C32)` for 32--39.
+
+| n | best known value | profile | status |
+|---:|---:|---|---|
+| 10 | **4** | `(4,0)` | **certified exact: F(10)=4** |
+| 11 | **2** | `(2,0)` | **certified exact: F(11)=2** |
+| 12 | 3 | `(3,0)` | heuristic upper bound |
+| 13 | 2 | `(2,0)` | heuristic upper bound |
+| 14 | 2 | `(2,0)` | heuristic upper bound |
+| 15 | 3 | `(3,0)` | heuristic upper bound |
+| 16 | 3 | `(3,0,0)` | heuristic upper bound |
+| 17 | 3 | `(3,0,0)` | heuristic upper bound |
+| 18 | 3 | `(3,0,0)` | heuristic upper bound |
+| 19 | 3 | `(3,0,0)` | heuristic upper bound |
+| 20 | 3 | `(3,0,0)` | heuristic upper bound |
+| 23 | 3 | `(3,0,0)` | heuristic upper bound |
+| 24 | 3 | `(3,0,0)` | heuristic upper bound |
+| 25 | 3 | `(3,0,0)` | heuristic upper bound |
+| 26 | 3 | `(3,0,0)` | heuristic upper bound |
+| 27 | 3 | `(3,0,0)` | heuristic upper bound |
+| 28 | 3 | `(3,0,0)` | heuristic upper bound |
+| 29 | 3 | `(3,0,0)` | heuristic upper bound |
+| 30 | 4 | `(4,0,0)` | heuristic upper bound |
+| 31 | 4 | `(3,1,0)` | heuristic upper bound |
+| 32 | 4 | `(3,1,0,0)` | heuristic upper bound |
+| 33 | 4 | `(4,0,0,0)` | heuristic upper bound |
+| 34 | **3** | `(3,0,0,0)` | heuristic upper bound |
+| 35 | 4 | `(4,0,0,0)` | heuristic upper bound |
+| 36 | 4 | `(3,1,0,0)` | heuristic upper bound |
+| 37 | 4 | `(3,1,0,0)` | heuristic upper bound |
+| 38 | 4 | `(3,1,0,0)` | heuristic upper bound |
+| 39 | 4 | `(4,0,0,0)` | heuristic upper bound |
+
+The exhaustive searches inspected 5,203,110 non-isomorphic admissible graphs for
+`n=10` and 577,076,528 for `n=11`. No graph with total 0 or 1 exists at order 11;
+the exact minimum is two 4-cycles.
+
+The current high-order search uses a cycle-blind legal ADD/REMOVE random walk with
+alternating RANDOM and ELITE parent phases. Candidate scoring is cascaded through
+`C4 -> C8 -> C16 -> C32`, conservatively pruning a candidate as soon as its proven
+partial total cannot beat the incumbent. This avoids almost all expensive `C32`
+computations while preserving correctness of the comparison against the incumbent.
+The bounded-memory implementation does not retain hashes for every rejected candidate,
+so long runs remain stable instead of accumulating tens of millions of Python set
+entries.
+
+The strongest result in the currently explored `n >= 32` range is
+`T(34) <= 3` with profile `(3,0,0,0)`. At order 32, two distinct total-4 profile classes
+have been observed: `(3,1,0,0)` and `(4,0,0,0)`; the former is preferred by the current
+weighted tie-break but the latter is also repeatedly reachable. Orders 21 and 22 have
+not yet been included in these calibration/search campaigns.
+
+**No Erdős–Gyárfás counterexample has been found.** Except for `n=10` and `n=11`, the
+numbers above are constructive upper bounds only and must not be read as exact values
+of `F(n)`.
+
 ## Setup
 
 Use [uv](https://docs.astral.sh/uv/) for all environment and package operations:
@@ -123,5 +197,6 @@ Status commands inspect but never repair data.
 The graph seed construction and structural checks were adapted from
 `sglab.targets.erdos_gyarfas.ErdosGyarfasPlugin.generate_seed` and `validate_graph` in the
 read-only HEG reference repository. Graphoratory uses its own deterministic normalized
-edge JSON hashing and does not include HEG search, mutation, scoring, campaign, or web
-subsystems.
+edge JSON hashing. The core Graphoratory application does not include HEG search,
+mutation, scoring, campaign, or web subsystems; the repository's research scripts and
+result artifacts are maintained separately from the core application services.
