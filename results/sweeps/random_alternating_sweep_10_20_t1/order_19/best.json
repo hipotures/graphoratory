@@ -1,0 +1,190 @@
+{
+  "edges": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      0,
+      13
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      1,
+      9
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      3,
+      10
+    ],
+    [
+      4,
+      15
+    ],
+    [
+      4,
+      16
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      5,
+      14
+    ],
+    [
+      6,
+      12
+    ],
+    [
+      6,
+      15
+    ],
+    [
+      6,
+      18
+    ],
+    [
+      7,
+      14
+    ],
+    [
+      8,
+      11
+    ],
+    [
+      8,
+      17
+    ],
+    [
+      10,
+      13
+    ],
+    [
+      10,
+      16
+    ],
+    [
+      11,
+      17
+    ],
+    [
+      11,
+      18
+    ],
+    [
+      12,
+      15
+    ],
+    [
+      12,
+      18
+    ],
+    [
+      13,
+      16
+    ],
+    [
+      14,
+      17
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 116,
+    "elapsed_seconds": 30.043330958000297,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 60288,
+    "exact": 59993,
+    "expected_order": 19,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 295,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 12,
+        "evaluated": 45312,
+        "exact": 45282,
+        "unique_exact": 45174
+      },
+      "RANDOM": {
+        "best_improvements": 3,
+        "evaluated": 14976,
+        "exact": 14711,
+        "unique_exact": 14703
+      }
+    },
+    "pid": 16167,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 471,
+    "seed": 7946296000,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "036b9a8e0451b3ff56b5188a1ba33bf346919f76504e9b5516d259ade108de9b",
+  "order": 19,
+  "random_walk": {
+    "add_steps": 2,
+    "parent_hash": "8160e79fafd875f413f3408949acecff95b5e3d9a7c0b1021a3714d7e0b94868",
+    "remove_steps": 3,
+    "seed": 4515012749830010747,
+    "walk_steps": 5
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 3,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 3,
+    "weighted": 48
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "constraints": {
+    "connected": true,
+    "minimum_degree": 3,
+    "minimum_edge_count": true,
+    "simple": true
+  },
+  "edges": [
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      12
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      6
+    ],
+    [
+      1,
+      10
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      11
+    ],
+    [
+      4,
+      12
+    ],
+    [
+      4,
+      14
+    ],
+    [
+      5,
+      13
+    ],
+    [
+      6,
+      9
+    ],
+    [
+      7,
+      13
+    ],
+    [
+      7,
+      14
+    ],
+    [
+      8,
+      10
+    ],
+    [
+      8,
+      12
+    ],
+    [
+      8,
+      13
+    ],
+    [
+      9,
+      11
+    ],
+    [
+      10,
+      11
+    ],
+    [
+      10,
+      14
+    ]
+  ],
+  "generation_seed": 42422842624,
+  "order": 15,
+  "schema_version": "heg.random_fair_sweep.seed.v1",
+  "seed_kind": "random_configuration_minimum_edge"
+}

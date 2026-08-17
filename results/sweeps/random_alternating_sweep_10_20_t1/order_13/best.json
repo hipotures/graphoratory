@@ -1,0 +1,150 @@
+{
+  "edges": [
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      12
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      1,
+      9
+    ],
+    [
+      1,
+      11
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      3,
+      7
+    ],
+    [
+      3,
+      11
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      4,
+      10
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      5,
+      12
+    ],
+    [
+      6,
+      10
+    ],
+    [
+      6,
+      11
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      12
+    ],
+    [
+      9,
+      10
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 2287,
+    "elapsed_seconds": 30.025644780998846,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 355711,
+    "exact": 355676,
+    "expected_order": 13,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 35,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 6,
+        "evaluated": 211583,
+        "exact": 211583,
+        "unique_exact": 209504
+      },
+      "RANDOM": {
+        "best_improvements": 9,
+        "evaluated": 144128,
+        "exact": 144093,
+        "unique_exact": 143886
+      }
+    },
+    "pid": 15295,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 2779,
+    "seed": 7940295982,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "03ae01ccf3cc282014ef32b5f85011c7bd21972382f918bfaf05c6c0f5eabe88",
+  "order": 13,
+  "random_walk": {
+    "add_steps": 4,
+    "parent_hash": "f018938bd9891b376880b3f0ff5472d9b42394a9506b2a2947cf3f51a967bda9",
+    "remove_steps": 4,
+    "seed": 1437745575532983089,
+    "walk_steps": 8
+  },
+  "score": {
+    "components": {
+      "4": {
+        "observed": 2,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 2,
+    "weighted": 32
+  }
+}

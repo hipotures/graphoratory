@@ -1,0 +1,103 @@
+{
+  "avoided_scorer_calls_by_length": {
+    "16": 4905299,
+    "32": 4974013,
+    "4": 0,
+    "8": 2758503
+  },
+  "candidates_per_worker": 32,
+  "cascade_rule": "score ascending forbidden lengths; prune only if proven partial TOTAL > dispatch incumbent",
+  "certified_pruned": 4974013,
+  "control_c4": 4,
+  "control_clean_exact_by_phase": {
+    "ELITE": 130,
+    "RANDOM": 69
+  },
+  "control_dirty_seen_by_phase": {
+    "ELITE": 494535,
+    "RANDOM": 308171
+  },
+  "control_insertions_by_phase": {
+    "ELITE": 15425,
+    "RANDOM": 14499
+  },
+  "control_policy": "stratified RANDOM/ELITE reservoir of exact C4=k candidates with certified positive higher forbidden-cycle component",
+  "control_reservoir_size_per_phase": 2500,
+  "control_sample_size_by_phase": {
+    "ELITE": 2500,
+    "RANDOM": 2500
+  },
+  "control_unknown_by_phase": {},
+  "dedupe_policy": "local batch + exact hashes + current reservoir only; no all-history pruned hash set",
+  "duplicates": 25616,
+  "elapsed_seconds": 405.4210013069969,
+  "elite_size": 128,
+  "errors": 0,
+  "evaluated": 5000000,
+  "evaluation_budget": 5000000,
+  "exact": 25987,
+  "exact_unique": 1040,
+  "forbidden_lengths": [
+    4,
+    8,
+    16,
+    32
+  ],
+  "implementation_version": 2,
+  "kind": "cycle_blind_random_legal_walk_cascade_budget_v2",
+  "max_edges": 0,
+  "mutation_failures": 0,
+  "node_budget": 10000000,
+  "nonexact_budget": 0,
+  "nonexact_cap": 0,
+  "order": 32,
+  "phase_evaluated": {
+    "ELITE": 2499922,
+    "RANDOM": 2500078
+  },
+  "phase_evaluations": 250000,
+  "phase_exact": {
+    "ELITE": 20021,
+    "RANDOM": 5966
+  },
+  "phase_pruned": {
+    "ELITE": 2479901,
+    "RANDOM": 2494112
+  },
+  "pid": 23460,
+  "prune_stage": {
+    "16": 68714,
+    "4": 2758503,
+    "8": 2146796
+  },
+  "reservoir_insertions": 33045,
+  "reservoir_size": 4096,
+  "reservoir_stream_seen": 5000001,
+  "root_node_budget": 250000000,
+  "root_parent_probability_random": 0.05,
+  "rounds": 9767,
+  "scorer_calls_by_length": {
+    "16": 94701,
+    "32": 25987,
+    "4": 5000000,
+    "8": 2241497
+  },
+  "scorer_elapsed_ns_by_length": {
+    "16": 2852821875,
+    "32": 7625776209,
+    "4": 11104725367,
+    "8": 6651635226
+  },
+  "scorer_nodes_by_length": {
+    "16": 422518723,
+    "32": 1144217485,
+    "4": 1255571099,
+    "8": 804564257
+  },
+  "seed": 8172026,
+  "stop_reason": "evaluation budget exhausted",
+  "walk_max": 48,
+  "walk_min": 4,
+  "witness_cap": 1000000,
+  "workers": 16
+}

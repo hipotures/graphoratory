@@ -1,0 +1,142 @@
+{
+  "edges": [
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      0,
+      10
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      6
+    ],
+    [
+      1,
+      11
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      11
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      10
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      7,
+      11
+    ],
+    [
+      8,
+      10
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 4934,
+    "elapsed_seconds": 30.022424078997574,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 370814,
+    "exact": 370796,
+    "expected_order": 12,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 18,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 4,
+        "evaluated": 215422,
+        "exact": 215422,
+        "unique_exact": 211093
+      },
+      "RANDOM": {
+        "best_improvements": 8,
+        "evaluated": 155392,
+        "exact": 155374,
+        "unique_exact": 154771
+      }
+    },
+    "pid": 15155,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 2897,
+    "seed": 7939295979,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "02412fa976d8b360a844f78108ceec6111ef5e50e505000e3c3c28f430425441",
+  "order": 12,
+  "random_walk": {
+    "add_steps": 6,
+    "parent_hash": "2e1af99a90b494b5760e18d02f0ac08520056113bba6c28e6d082b6aae8ccf1f",
+    "remove_steps": 7,
+    "seed": 5172083461058320009,
+    "walk_steps": 13
+  },
+  "score": {
+    "components": {
+      "4": {
+        "observed": 3,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 3,
+    "weighted": 48
+  }
+}

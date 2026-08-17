@@ -1,0 +1,313 @@
+{
+  "edges": [
+    [
+      0,
+      22
+    ],
+    [
+      0,
+      27
+    ],
+    [
+      0,
+      29
+    ],
+    [
+      1,
+      19
+    ],
+    [
+      1,
+      27
+    ],
+    [
+      1,
+      32
+    ],
+    [
+      2,
+      25
+    ],
+    [
+      2,
+      29
+    ],
+    [
+      2,
+      31
+    ],
+    [
+      3,
+      13
+    ],
+    [
+      3,
+      23
+    ],
+    [
+      3,
+      25
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      4,
+      20
+    ],
+    [
+      4,
+      26
+    ],
+    [
+      5,
+      12
+    ],
+    [
+      5,
+      14
+    ],
+    [
+      5,
+      18
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      6,
+      16
+    ],
+    [
+      6,
+      23
+    ],
+    [
+      7,
+      19
+    ],
+    [
+      7,
+      28
+    ],
+    [
+      8,
+      22
+    ],
+    [
+      8,
+      30
+    ],
+    [
+      9,
+      10
+    ],
+    [
+      9,
+      14
+    ],
+    [
+      9,
+      18
+    ],
+    [
+      10,
+      15
+    ],
+    [
+      10,
+      18
+    ],
+    [
+      11,
+      15
+    ],
+    [
+      11,
+      24
+    ],
+    [
+      11,
+      28
+    ],
+    [
+      12,
+      14
+    ],
+    [
+      12,
+      15
+    ],
+    [
+      13,
+      21
+    ],
+    [
+      13,
+      31
+    ],
+    [
+      16,
+      17
+    ],
+    [
+      16,
+      21
+    ],
+    [
+      17,
+      23
+    ],
+    [
+      17,
+      30
+    ],
+    [
+      19,
+      32
+    ],
+    [
+      20,
+      24
+    ],
+    [
+      20,
+      26
+    ],
+    [
+      21,
+      25
+    ],
+    [
+      22,
+      30
+    ],
+    [
+      24,
+      26
+    ],
+    [
+      27,
+      28
+    ],
+    [
+      27,
+      32
+    ],
+    [
+      29,
+      31
+    ]
+  ],
+  "experiment": {
+    "avoided_scorer_calls_by_length": {
+      "16": 358518,
+      "32": 359751,
+      "4": 0,
+      "8": 186058
+    },
+    "candidates_per_worker": 8,
+    "cascade_rule": "score ascending forbidden lengths; prune only if proven partial TOTAL > dispatch incumbent",
+    "certified_pruned": 359751,
+    "duplicates": 2334,
+    "elapsed_seconds": 28.71885272900181,
+    "elite_size": 128,
+    "errors": 0,
+    "evaluated": 360000,
+    "evaluation_budget": 360000,
+    "exact": 249,
+    "forbidden_lengths": [
+      4,
+      8,
+      16,
+      32
+    ],
+    "kind": "cycle_blind_random_legal_walk_cascade_budget",
+    "max_edges": 0,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact_budget": 0,
+    "nonexact_cap": 0,
+    "order": 33,
+    "phase_evaluated": {
+      "ELITE": 178496,
+      "RANDOM": 181504
+    },
+    "phase_evaluations": 16500,
+    "phase_exact": {
+      "ELITE": 218,
+      "RANDOM": 31
+    },
+    "phase_pruned": {
+      "ELITE": 178278,
+      "RANDOM": 181473
+    },
+    "pid": 18098,
+    "prune_stage": {
+      "16": 1233,
+      "4": 186058,
+      "8": 172460
+    },
+    "reservoir_size": 4096,
+    "root_parent_probability_random": 0.05,
+    "rounds": 2813,
+    "scorer_calls_by_length": {
+      "16": 1482,
+      "32": 249,
+      "4": 360000,
+      "8": 173942
+    },
+    "scorer_elapsed_ns_by_length": {
+      "16": 28386914,
+      "32": 249161966,
+      "4": 814265314,
+      "8": 404335905
+    },
+    "scorer_nodes_by_length": {
+      "16": 4595369,
+      "32": 38407291,
+      "4": 96294545,
+      "8": 51161988
+    },
+    "seed": 41172125,
+    "seen_unique": 357667,
+    "stop_reason": "evaluation budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "19b0cf493c14340a65c7063a227f6b80e2104566745719feb0b065ae9cba65bf",
+  "order": 33,
+  "random_walk": {
+    "add_steps": 3,
+    "parent_hash": "765a0f377a392af7aa95104fa059422ecaae4ef850b1c738d380c2fb96652d1d",
+    "remove_steps": 3,
+    "seed": 2643402217500457325,
+    "walk_steps": 6
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "32": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 5,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 5,
+    "weighted": 80
+  }
+}

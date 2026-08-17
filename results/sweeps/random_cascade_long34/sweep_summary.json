@@ -1,0 +1,37 @@
+[
+  {
+    "best_components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "32": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 3,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "best_graph": "results/sweeps/random_cascade_long34/order_34/best.json",
+    "best_total": 3,
+    "best_weighted": 48,
+    "bootstrap_retries": 0,
+    "certified_pruned": 49988881,
+    "edge_count": 52,
+    "elapsed_seconds": 3410.6327886380022,
+    "evaluated": 50000000,
+    "exact": 11119,
+    "graph_hash": "00905a7ae196e8a0bcc1a5a993b1a115cada8afd477268ba51ff21ae05ecd55f",
+    "order": 34,
+    "source": "explicit",
+    "start": "results/sweeps/random_cascade_quick_32_39/order_34/best.json",
+    "status": "ok",
+    "summary": "results/sweeps/random_cascade_long34/order_34/summary.json"
+  }
+]

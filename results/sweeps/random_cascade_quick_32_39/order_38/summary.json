@@ -1,0 +1,84 @@
+{
+  "avoided_scorer_calls_by_length": {
+    "16": 4817022,
+    "32": 4992046,
+    "4": 0,
+    "8": 2227632
+  },
+  "candidates_per_worker": 32,
+  "cascade_rule": "score ascending forbidden lengths; prune only if proven partial TOTAL > dispatch incumbent",
+  "certified_pruned": 4994711,
+  "dedupe_policy": "local batch + exact hashes + current reservoir only; no all-history pruned hash set",
+  "duplicates": 5443,
+  "elapsed_seconds": 376.7671585729986,
+  "elite_size": 128,
+  "errors": 0,
+  "evaluated": 5000000,
+  "evaluation_budget": 5000000,
+  "exact": 5288,
+  "exact_unique": 268,
+  "forbidden_lengths": [
+    4,
+    8,
+    16,
+    32
+  ],
+  "implementation_version": 2,
+  "kind": "cycle_blind_random_legal_walk_cascade_budget_v2",
+  "max_edges": 0,
+  "mutation_failures": 0,
+  "node_budget": 10000000,
+  "nonexact_budget": 1,
+  "nonexact_cap": 0,
+  "order": 38,
+  "phase_evaluated": {
+    "ELITE": 2499912,
+    "RANDOM": 2500088
+  },
+  "phase_evaluations": 50000,
+  "phase_exact": {
+    "ELITE": 5214,
+    "RANDOM": 74
+  },
+  "phase_pruned": {
+    "ELITE": 2494698,
+    "RANDOM": 2500013
+  },
+  "pid": 22432,
+  "prune_stage": {
+    "16": 175024,
+    "32": 2665,
+    "4": 2227632,
+    "8": 2589390
+  },
+  "reservoir_insertions": 32895,
+  "reservoir_size": 4096,
+  "reservoir_stream_seen": 5000001,
+  "root_node_budget": 250000000,
+  "root_parent_probability_random": 0.05,
+  "rounds": 9767,
+  "scorer_calls_by_length": {
+    "16": 182978,
+    "32": 7954,
+    "4": 5000000,
+    "8": 2772368
+  },
+  "scorer_elapsed_ns_by_length": {
+    "16": 35550643296,
+    "32": 31043526348,
+    "4": 13541362148,
+    "8": 16826474765
+  },
+  "scorer_nodes_by_length": {
+    "16": 4831768574,
+    "32": 4149827641,
+    "4": 1545792157,
+    "8": 2171037803
+  },
+  "seed": 84172153,
+  "stop_reason": "evaluation budget exhausted",
+  "walk_max": 48,
+  "walk_min": 4,
+  "witness_cap": 1000000,
+  "workers": 16
+}

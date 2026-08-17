@@ -1,0 +1,154 @@
+{
+  "edges": [
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      10
+    ],
+    [
+      0,
+      11
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      5
+    ],
+    [
+      1,
+      12
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      3,
+      7
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      3,
+      13
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      6,
+      10
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      11
+    ],
+    [
+      9,
+      12
+    ],
+    [
+      9,
+      13
+    ],
+    [
+      10,
+      11
+    ],
+    [
+      12,
+      13
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 99949,
+    "elapsed_seconds": 300.0361688949997,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 3427198,
+    "exact": 3427169,
+    "expected_order": 14,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 29,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 0,
+        "evaluated": 1893246,
+        "exact": 1893246,
+        "unique_exact": 1805321
+      },
+      "RANDOM": {
+        "best_improvements": 0,
+        "evaluated": 1533952,
+        "exact": 1533923,
+        "unique_exact": 1521901
+      }
+    },
+    "pid": 16799,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 26775,
+    "seed": 7941295986,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "0005145a7d5a1ee92b37be18b90fefd207115b98cfaafd0a7d7c179b16e77172",
+  "order": 14,
+  "random_walk": {
+    "add_steps": 0,
+    "parent_hash": null,
+    "remove_steps": 0,
+    "seed": null,
+    "walk_steps": 0
+  },
+  "score": {
+    "components": {
+      "4": {
+        "observed": 2,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 2,
+    "weighted": 32
+  }
+}

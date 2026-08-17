@@ -1,0 +1,78 @@
+{
+  "avoided_scorer_calls_by_length": {
+    "16": 297290,
+    "32": 298792,
+    "4": 0,
+    "8": 178022
+  },
+  "candidates_per_worker": 8,
+  "cascade_rule": "score ascending forbidden lengths; prune only if proven partial TOTAL > dispatch incumbent",
+  "certified_pruned": 298792,
+  "duplicates": 7662,
+  "elapsed_seconds": 23.58768110999881,
+  "elite_size": 128,
+  "errors": 0,
+  "evaluated": 300000,
+  "evaluation_budget": 300000,
+  "exact": 1208,
+  "forbidden_lengths": [
+    4,
+    8,
+    16,
+    32
+  ],
+  "kind": "cycle_blind_random_legal_walk_cascade_budget",
+  "max_edges": 0,
+  "mutation_failures": 0,
+  "node_budget": 10000000,
+  "nonexact_budget": 0,
+  "nonexact_cap": 0,
+  "order": 32,
+  "phase_evaluated": {
+    "ELITE": 149984,
+    "RANDOM": 150016
+  },
+  "phase_evaluations": 15000,
+  "phase_exact": {
+    "ELITE": 1137,
+    "RANDOM": 71
+  },
+  "phase_pruned": {
+    "ELITE": 148847,
+    "RANDOM": 149945
+  },
+  "pid": 17959,
+  "prune_stage": {
+    "16": 1502,
+    "4": 178022,
+    "8": 119268
+  },
+  "reservoir_size": 4096,
+  "root_parent_probability_random": 0.05,
+  "rounds": 2344,
+  "scorer_calls_by_length": {
+    "16": 2710,
+    "32": 1208,
+    "4": 300000,
+    "8": 121978
+  },
+  "scorer_elapsed_ns_by_length": {
+    "16": 121082806,
+    "32": 815943751,
+    "4": 683776085,
+    "8": 338205651
+  },
+  "scorer_nodes_by_length": {
+    "16": 18493490,
+    "32": 131388512,
+    "4": 77615879,
+    "8": 41417712
+  },
+  "seed": 40172122,
+  "seen_unique": 292365,
+  "stop_reason": "evaluation budget exhausted",
+  "walk_max": 48,
+  "walk_min": 4,
+  "witness_cap": 1000000,
+  "workers": 16
+}

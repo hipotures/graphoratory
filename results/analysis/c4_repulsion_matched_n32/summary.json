@@ -1,0 +1,159 @@
+{
+  "common_degree_sequence_strata": [
+    {
+      "control": {
+        "mean_d_mean": 4.333333333333334,
+        "median_d_max": 7,
+        "median_d_mean": 3.8333333333333335,
+        "median_d_min": 1,
+        "n": 7,
+        "union16_fraction": 0.7142857142857143,
+        "vertex_disjoint_fraction": 0.7142857142857143
+      },
+      "degree_sequence": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "degree_sequence_compact": "3^32",
+      "edge_count": 48,
+      "target": {
+        "mean_d_mean": 6.927672955974844,
+        "median_d_max": 9,
+        "median_d_mean": 6.833333333333333,
+        "median_d_min": 3,
+        "n": 53,
+        "union16_fraction": 1.0,
+        "vertex_disjoint_fraction": 1.0
+      }
+    },
+    {
+      "control": {
+        "mean_d_mean": 3.671985815602837,
+        "median_d_max": 6.0,
+        "median_d_mean": 3.6666666666666665,
+        "median_d_min": 1.0,
+        "n": 94,
+        "union16_fraction": 0.5638297872340425,
+        "vertex_disjoint_fraction": 0.5638297872340425
+      },
+      "degree_sequence": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        4,
+        4
+      ],
+      "degree_sequence_compact": "3^30,4^2",
+      "edge_count": 49,
+      "target": {
+        "mean_d_mean": 6.206896551724138,
+        "median_d_max": 9.0,
+        "median_d_mean": 6.166666666666667,
+        "median_d_min": 3.0,
+        "n": 58,
+        "union16_fraction": 0.9827586206896551,
+        "vertex_disjoint_fraction": 0.9827586206896551
+      }
+    }
+  ],
+  "control_total": 2496,
+  "interpretation_note": "Descriptive matched comparison on search-derived non-isomorphic graphs; not an IID sample and not a proof of causality.",
+  "m48": {
+    "control": {
+      "mean_d_mean": 4.333333333333334,
+      "median_d_max": 7,
+      "median_d_mean": 3.8333333333333335,
+      "median_d_min": 1,
+      "n": 7,
+      "union16_fraction": 0.7142857142857143,
+      "vertex_disjoint_fraction": 0.7142857142857143
+    },
+    "target": {
+      "mean_d_mean": 6.927672955974844,
+      "median_d_max": 9,
+      "median_d_mean": 6.833333333333333,
+      "median_d_min": 3,
+      "n": 53,
+      "union16_fraction": 1.0,
+      "vertex_disjoint_fraction": 1.0
+    }
+  },
+  "m49": {
+    "control": {
+      "mean_d_mean": 3.658730158730159,
+      "median_d_max": 6,
+      "median_d_mean": 3.6666666666666665,
+      "median_d_min": 1,
+      "n": 105,
+      "union16_fraction": 0.5619047619047619,
+      "vertex_disjoint_fraction": 0.5619047619047619
+    },
+    "target": {
+      "mean_d_mean": 6.206896551724138,
+      "median_d_max": 9.0,
+      "median_d_mean": 6.166666666666667,
+      "median_d_min": 3.0,
+      "n": 58,
+      "union16_fraction": 0.9827586206896551,
+      "vertex_disjoint_fraction": 0.9827586206896551
+    }
+  },
+  "target_total": 113
+}

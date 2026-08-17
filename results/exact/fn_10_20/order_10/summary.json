@@ -1,0 +1,27 @@
+{
+  "F_n": 4,
+  "all_shards_complete": true,
+  "best_components": {
+    "4": 4,
+    "8": 0
+  },
+  "best_upper_bound": 4,
+  "completed_shards": 256,
+  "elapsed_this_invocation_seconds": 5.252684628001589,
+  "exact": true,
+  "forbidden_lengths": [
+    4,
+    8
+  ],
+  "fully_scored": 18,
+  "generated": 5203110,
+  "geng": "/home/user/.local/bin/geng",
+  "method": "nauty geng -c -d3 exhaustive non-isomorphic generation",
+  "order": 10,
+  "pruned_after_c16": 0,
+  "pruned_after_c4": 5193148,
+  "pruned_after_c8": 9944,
+  "schema_version": "heg.exact_fn.summary.v1",
+  "shards": 256,
+  "workers": 16
+}

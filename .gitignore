@@ -5,3 +5,7 @@
 __pycache__/
 *.py[cod]
 workspaces/
+
+# HEG mutable search-resume state
+results/**/pool.json
+results/**/pool.json.gz

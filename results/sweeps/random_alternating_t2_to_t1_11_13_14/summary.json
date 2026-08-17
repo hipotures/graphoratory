@@ -1,0 +1,120 @@
+{
+  "mutation": "cycle_blind_ADD_REMOVE_legal_walk",
+  "orders": [
+    11,
+    13,
+    14
+  ],
+  "parent_selection": {
+    "elite_phase": {
+      "elite_probability": 1.0,
+      "elite_size": 64,
+      "root_parent_probability": 0.0
+    },
+    "mode": "alternating_random_elite",
+    "phase_seconds": 5.0,
+    "random_phase": {
+      "elite_probability": 0.0,
+      "reservoir": true,
+      "root_parent_probability": 0.05
+    },
+    "reservoir_size": 2048
+  },
+  "results": [
+    {
+      "best_components": {
+        "4": 2,
+        "8": 0
+      },
+      "best_edge_count": 17,
+      "best_graph": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_11/best.json",
+      "best_hash": "000bc42433ec8827ed177e6915bd45ab86157f62904afe00d0a9541976ddf24e",
+      "best_total": 2,
+      "best_weighted": 32,
+      "child_exit_code": 0,
+      "elapsed_seconds": 301.01537705100054,
+      "evaluated": 3674238,
+      "exact": 3674238,
+      "hits_log": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_11/hits.jsonl",
+      "initial_total": 2,
+      "order": 11,
+      "pool_file": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_11/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_11/run.log",
+      "seed": {
+        "edge_count": 17,
+        "order": 11,
+        "path": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_sweep_10_20_t1/order_11/best.json",
+        "reported_total": 2,
+        "reported_weighted": 32,
+        "source": "explicit"
+      },
+      "status": "OK"
+    },
+    {
+      "best_components": {
+        "4": 2,
+        "8": 0
+      },
+      "best_edge_count": 20,
+      "best_graph": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_13/best.json",
+      "best_hash": "008383b954a0632db1af7adcbf533edbfbf952f0e08f79c07b166a2c3d9d029f",
+      "best_total": 2,
+      "best_weighted": 32,
+      "child_exit_code": 0,
+      "elapsed_seconds": 301.12601878200076,
+      "evaluated": 3417855,
+      "exact": 3417364,
+      "hits_log": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_13/hits.jsonl",
+      "initial_total": 2,
+      "order": 13,
+      "pool_file": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_13/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_13/run.log",
+      "seed": {
+        "edge_count": 20,
+        "order": 13,
+        "path": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_sweep_10_20_t1/order_13/best.json",
+        "reported_total": 2,
+        "reported_weighted": 32,
+        "source": "explicit"
+      },
+      "status": "OK"
+    },
+    {
+      "best_components": {
+        "4": 2,
+        "8": 0
+      },
+      "best_edge_count": 21,
+      "best_graph": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_14/best.json",
+      "best_hash": "0005145a7d5a1ee92b37be18b90fefd207115b98cfaafd0a7d7c179b16e77172",
+      "best_total": 2,
+      "best_weighted": 32,
+      "child_exit_code": 0,
+      "elapsed_seconds": 301.1807031919998,
+      "evaluated": 3427198,
+      "exact": 3427169,
+      "hits_log": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_14/hits.jsonl",
+      "initial_total": 2,
+      "order": 14,
+      "pool_file": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_14/pool.json",
+      "run_log": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_t2_to_t1_11_13_14/order_14/run.log",
+      "seed": {
+        "edge_count": 21,
+        "order": 14,
+        "path": "/home/user/DEV/graphoratory/results/sweeps/random_alternating_sweep_10_20_t1/order_14/best.json",
+        "reported_total": 2,
+        "reported_weighted": 32,
+        "source": "explicit"
+      },
+      "status": "OK"
+    }
+  ],
+  "schema_version": "heg.random_alternating_sweep.v1",
+  "scoring": {
+    "exact_only_for_T": true,
+    "node_budget": 10000000,
+    "witness_cap": 1000000
+  },
+  "seconds_per_order": 300.0,
+  "start_policy": "random_configuration_minimum_edge_per_order"
+}

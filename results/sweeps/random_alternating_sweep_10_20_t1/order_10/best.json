@@ -1,0 +1,134 @@
+{
+  "edges": [
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      6
+    ],
+    [
+      1,
+      9
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      3,
+      7
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      9
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 5170,
+    "elapsed_seconds": 30.01318177199937,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 411900,
+    "exact": 411900,
+    "expected_order": 10,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 0,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 6,
+        "evaluated": 227072,
+        "exact": 227072,
+        "unique_exact": 224233
+      },
+      "RANDOM": {
+        "best_improvements": 7,
+        "evaluated": 184828,
+        "exact": 184828,
+        "unique_exact": 182501
+      }
+    },
+    "pid": 14872,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 3218,
+    "seed": 7937295973,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "00794b7a5c84f7371cee4a73cf97b7ad88f51f883653e3a75090104f42ac21a0",
+  "order": 10,
+  "random_walk": {
+    "add_steps": 5,
+    "parent_hash": "422bebc51413f9602bcc6c0313e9d3e5265ac1133b6685a8de82f8570d4f98e3",
+    "remove_steps": 5,
+    "seed": 5528037387341167220,
+    "walk_steps": 10
+  },
+  "score": {
+    "components": {
+      "4": {
+        "observed": 4,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 4,
+    "weighted": 64
+  }
+}

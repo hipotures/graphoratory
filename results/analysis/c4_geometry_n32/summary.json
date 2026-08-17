@@ -1,0 +1,265 @@
+{
+  "comparison_first_two_profiles": {
+    "a": "(4,0,0,0)",
+    "a_graphs": 326,
+    "a_mean_of_graph_mean_distances": 6.46523517382413,
+    "b": "(3,1,0,0)",
+    "b_graphs": 5396,
+    "b_mean_of_graph_mean_distances": 6.82060785767235,
+    "difference_a_minus_b": -0.35537268384821985,
+    "note": "Descriptive only. Search hits are not IID samples and the ELITE policy biases profile frequencies."
+  },
+  "definition": {
+    "cycle_distance": "min shortest-path edge distance in the full graph between a vertex of one C4 and a vertex of the other C4",
+    "distance_0": "the cycles share at least one vertex",
+    "distance_1": "the cycles are vertex-disjoint and at least one graph edge joins the two cycle vertex sets"
+  },
+  "duplicate_hashes_skipped": 0,
+  "input": "results/sweeps/random_cascade_long/order_32/hits.jsonl",
+  "profiles": {
+    "(3,1,0,0)": {
+      "all_edge_disjoint_fraction": 1.0,
+      "all_edge_disjoint_graphs": 5396,
+      "all_vertex_disjoint_fraction": 1.0,
+      "all_vertex_disjoint_graphs": 5396,
+      "cycle_pairs": 16188,
+      "distance_le1_pair_fraction": 0.0,
+      "distance_le1_pairs": 0,
+      "edge_overlap_pairs": 0,
+      "graphs": 5396,
+      "graphs_with_edge_overlap": 0,
+      "graphs_with_vertex_overlap": 0,
+      "pair_distance_histogram": {
+        "10": 793,
+        "11": 945,
+        "2": 38,
+        "3": 156,
+        "4": 2589,
+        "5": 293,
+        "6": 256,
+        "7": 10887,
+        "8": 102,
+        "9": 129
+      },
+      "pair_distance_mean": 6.82060785767235,
+      "pair_distance_median": 7.0,
+      "per_graph_d_max_mean": 7.653076352853966,
+      "per_graph_d_max_median": 7.0,
+      "per_graph_d_mean_mean": 6.82060785767235,
+      "per_graph_d_mean_median": 6.0,
+      "per_graph_d_min_mean": 5.366011860637509,
+      "per_graph_d_min_median": 4.0,
+      "top_distance_signatures": [
+        {
+          "count": 2316,
+          "signature": "4,7,7"
+        },
+        {
+          "count": 1663,
+          "signature": "7,7,7"
+        },
+        {
+          "count": 287,
+          "signature": "7,11,11"
+        },
+        {
+          "count": 207,
+          "signature": "7,10,10"
+        },
+        {
+          "count": 195,
+          "signature": "5,6,7"
+        },
+        {
+          "count": 107,
+          "signature": "3,7,7"
+        },
+        {
+          "count": 101,
+          "signature": "4,10,10"
+        },
+        {
+          "count": 90,
+          "signature": "7,8,11"
+        },
+        {
+          "count": 88,
+          "signature": "7,7,10"
+        },
+        {
+          "count": 85,
+          "signature": "4,11,11"
+        },
+        {
+          "count": 50,
+          "signature": "9,9,11"
+        },
+        {
+          "count": 39,
+          "signature": "4,4,6"
+        },
+        {
+          "count": 33,
+          "signature": "2,5,7"
+        },
+        {
+          "count": 30,
+          "signature": "7,10,11"
+        },
+        {
+          "count": 28,
+          "signature": "3,5,7"
+        },
+        {
+          "count": 13,
+          "signature": "3,10,10"
+        },
+        {
+          "count": 11,
+          "signature": "5,10,11"
+        },
+        {
+          "count": 9,
+          "signature": "5,9,10"
+        },
+        {
+          "count": 8,
+          "signature": "6,8,10"
+        },
+        {
+          "count": 8,
+          "signature": "6,9,11"
+        }
+      ],
+      "union_vertex_count_histogram": {
+        "12": 5396
+      },
+      "vertex_overlap_pairs": 0
+    },
+    "(4,0,0,0)": {
+      "all_edge_disjoint_fraction": 1.0,
+      "all_edge_disjoint_graphs": 326,
+      "all_vertex_disjoint_fraction": 0.9969325153374233,
+      "all_vertex_disjoint_graphs": 325,
+      "cycle_pairs": 1956,
+      "distance_le1_pair_fraction": 0.03783231083844581,
+      "distance_le1_pairs": 74,
+      "edge_overlap_pairs": 0,
+      "graphs": 326,
+      "graphs_with_edge_overlap": 0,
+      "graphs_with_vertex_overlap": 1,
+      "pair_distance_histogram": {
+        "0": 1,
+        "1": 73,
+        "10": 61,
+        "11": 50,
+        "12": 24,
+        "2": 47,
+        "3": 166,
+        "4": 181,
+        "5": 116,
+        "6": 150,
+        "7": 494,
+        "8": 466,
+        "9": 127
+      },
+      "pair_distance_mean": 6.465235173824131,
+      "pair_distance_median": 7.0,
+      "per_graph_d_max_mean": 8.776073619631902,
+      "per_graph_d_max_median": 8.0,
+      "per_graph_d_mean_mean": 6.46523517382413,
+      "per_graph_d_mean_median": 6.666666666666667,
+      "per_graph_d_min_mean": 2.6809815950920246,
+      "per_graph_d_min_median": 3.0,
+      "top_distance_signatures": [
+        {
+          "count": 41,
+          "signature": "1,7,8,8,9,9"
+        },
+        {
+          "count": 38,
+          "signature": "3,4,6,7,7,7"
+        },
+        {
+          "count": 38,
+          "signature": "3,4,5,7,7,8"
+        },
+        {
+          "count": 24,
+          "signature": "2,4,4,7,7,7"
+        },
+        {
+          "count": 18,
+          "signature": "6,7,8,8,8,8"
+        },
+        {
+          "count": 15,
+          "signature": "3,6,7,8,11,12"
+        },
+        {
+          "count": 14,
+          "signature": "1,7,8,8,8,8"
+        },
+        {
+          "count": 13,
+          "signature": "3,7,8,8,8,8"
+        },
+        {
+          "count": 13,
+          "signature": "2,7,8,8,8,8"
+        },
+        {
+          "count": 11,
+          "signature": "3,5,5,7,10,10"
+        },
+        {
+          "count": 9,
+          "signature": "1,3,8,8,9,9"
+        },
+        {
+          "count": 9,
+          "signature": "3,5,7,8,8,11"
+        },
+        {
+          "count": 8,
+          "signature": "4,5,6,7,10,12"
+        },
+        {
+          "count": 8,
+          "signature": "4,4,7,7,8,11"
+        },
+        {
+          "count": 8,
+          "signature": "3,5,6,7,8,11"
+        },
+        {
+          "count": 6,
+          "signature": "4,6,6,7,10,10"
+        },
+        {
+          "count": 4,
+          "signature": "3,4,6,7,7,10"
+        },
+        {
+          "count": 3,
+          "signature": "3,6,6,7,8,8"
+        },
+        {
+          "count": 3,
+          "signature": "4,5,7,8,9,9"
+        },
+        {
+          "count": 2,
+          "signature": "1,4,8,8,8,8"
+        }
+      ],
+      "union_vertex_count_histogram": {
+        "15": 1,
+        "16": 325
+      },
+      "vertex_overlap_pairs": 1
+    }
+  },
+  "scanned_records": 5722,
+  "selected_records": 5722
+}

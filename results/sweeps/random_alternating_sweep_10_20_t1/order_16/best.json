@@ -1,0 +1,170 @@
+{
+  "edges": [
+    [
+      0,
+      8
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      0,
+      13
+    ],
+    [
+      1,
+      2
+    ],
+    [
+      1,
+      5
+    ],
+    [
+      1,
+      15
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      15
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      3,
+      10
+    ],
+    [
+      3,
+      15
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      4,
+      10
+    ],
+    [
+      4,
+      12
+    ],
+    [
+      5,
+      14
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      6,
+      11
+    ],
+    [
+      6,
+      13
+    ],
+    [
+      7,
+      11
+    ],
+    [
+      7,
+      13
+    ],
+    [
+      8,
+      14
+    ],
+    [
+      9,
+      12
+    ],
+    [
+      10,
+      12
+    ],
+    [
+      11,
+      14
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 3452,
+    "elapsed_seconds": 30.017257127001358,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 124408,
+    "exact": 124222,
+    "expected_order": 16,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 186,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 17,
+        "evaluated": 100088,
+        "exact": 100081,
+        "unique_exact": 96698
+      },
+      "RANDOM": {
+        "best_improvements": 4,
+        "evaluated": 24320,
+        "exact": 24141,
+        "unique_exact": 24080
+      }
+    },
+    "pid": 15746,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 972,
+    "seed": 7943295991,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "03e0873d5d481f206277f616a8af11f612a04cb576ccd70d89ac57c9edbb97c9",
+  "order": 16,
+  "random_walk": {
+    "add_steps": 17,
+    "parent_hash": "74fc8dad24df911b201c1c9585e08e787e66cbb63819bfea6724dd60b4d32a5c",
+    "remove_steps": 18,
+    "seed": 5875205853509311704,
+    "walk_steps": 35
+  },
+  "score": {
+    "components": {
+      "16": {
+        "observed": 0,
+        "status": "EXACT"
+      },
+      "4": {
+        "observed": 3,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 3,
+    "weighted": 48
+  }
+}

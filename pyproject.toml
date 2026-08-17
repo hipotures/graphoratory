@@ -12,6 +12,7 @@ license = { file = "LICENSE" }
 dependencies = [
   "alembic>=1.16,<2",
   "networkx>=3.4,<4",
+  "pandas>=3.0.5",
   "rich>=13.9,<15",
   "sqlalchemy>=2.0,<3",
   "structural-graph-lab @ git+https://github.com/hipotures/heg@27cbec9c2307b6ea5f936f858821d11d808b68f3",

@@ -1,0 +1,138 @@
+{
+  "edges": [
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      1,
+      6
+    ],
+    [
+      1,
+      10
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      2,
+      10
+    ],
+    [
+      3,
+      10
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      5,
+      6
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      7,
+      9
+    ]
+  ],
+  "experiment": {
+    "candidates_per_worker": 8,
+    "duplicates": 71904,
+    "elapsed_seconds": 300.0345479009993,
+    "elite_parent_probability_static": 0.0,
+    "elite_size": 64,
+    "errors": 0,
+    "evaluated": 3674238,
+    "exact": 3674238,
+    "expected_order": 11,
+    "kind": "cycle_blind_random_legal_walk",
+    "max_edges": 0,
+    "min_degree": 3,
+    "mutation_failures": 0,
+    "node_budget": 10000000,
+    "nonexact": 0,
+    "phase_seconds": 5.0,
+    "phase_stats": {
+      "ELITE": {
+        "best_improvements": 2,
+        "evaluated": 2015614,
+        "exact": 2015614,
+        "unique_exact": 1953203
+      },
+      "RANDOM": {
+        "best_improvements": 0,
+        "evaluated": 1658624,
+        "exact": 1658624,
+        "unique_exact": 1649133
+      }
+    },
+    "pid": 16483,
+    "reservoir_size": 2048,
+    "root_parent_probability": 0.05,
+    "rounds": 28705,
+    "seed": 7938295977,
+    "selection_mode": "alternating",
+    "stop_reason": "time budget exhausted",
+    "walk_max": 48,
+    "walk_min": 4,
+    "witness_cap": 1000000,
+    "workers": 16
+  },
+  "graph_hash": "000bc42433ec8827ed177e6915bd45ab86157f62904afe00d0a9541976ddf24e",
+  "order": 11,
+  "random_walk": {
+    "add_steps": 10,
+    "parent_hash": "0618bdbfabe133582d4206aa412a26faef2e012dd89d38d0e6708834b63001ec",
+    "remove_steps": 10,
+    "seed": 3762679833746704724,
+    "walk_steps": 20
+  },
+  "score": {
+    "components": {
+      "4": {
+        "observed": 2,
+        "status": "EXACT"
+      },
+      "8": {
+        "observed": 0,
+        "status": "EXACT"
+      }
+    },
+    "total": 2,
+    "weighted": 32
+  }
+}
