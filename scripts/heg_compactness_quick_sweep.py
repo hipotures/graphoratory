@@ -7,29 +7,34 @@ the compactness threshold can be tied to the target:
 
     compactness_threshold = target + threshold_margin
 
-That detail matters.  If n=10 has certified F(10)=4 and the threshold were 4,
+That detail matters. If n=10 has certified F(10)=4 and the threshold were 4,
 compactness would only become active at the exact moment the benchmark stops at
-F=4, so it could not possibly help time-to-target.  With the default margin 2,
+F=4, so it could not possibly help time-to-target. With the default margin 2,
 geometry can guide equal-F plateaus at F=6 and F=5 while F itself remains the
 first ranking key.
 
-The underlying mutator changes only ELITE ordering.  Mutation, exact HEG
-scoring, reservoir handling, success criterion, and the alternating
-random/elite schedule remain unchanged.
+The benchmark uses the underlying alternating RANDOM/ELITE parent schedule. The
+phase duration is intentionally short here: certified n=10/n=11 targets are
+usually reached in only a few seconds, so a multi-second initial RANDOM phase
+would let the run finish before compactness-ranked ELITE parents are ever used.
+The default 0.5 s phase therefore makes this a real mixed-strategy test while
+leaving mutation and exact scoring unchanged.
 
 Default experiment:
     n=10 target 4, threshold 6
     n=11 target 2, threshold 4
     metrics: baseline, cycle-min, vertex-mean, edge-potential
+    alternating RANDOM/ELITE every 0.5 s
 
 Example:
     uv run python scripts/heg_compactness_quick_sweep.py \
       --repeats 10 --seconds-per-run 20 --workers 16 \
-      --output-dir results/sweeps/compactness_certified
+      --output-dir results/sweeps/compactness_certified_p05
 
 For a cheaper smoke:
     uv run python scripts/heg_compactness_quick_sweep.py \
-      --repeats 3 --seconds-per-run 10 --workers 16
+      --repeats 3 --seconds-per-run 10 --workers 16 \
+      --output-dir results/sweeps/compactness_certified_p05_smoke
 """
 
 from __future__ import annotations
@@ -71,7 +76,15 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seconds-per-run", type=float, default=20.0)
     p.add_argument("--workers", type=int, default=16)
     p.add_argument("--candidates-per-worker", type=int, default=8)
-    p.add_argument("--phase-seconds", type=float, default=5.0)
+    p.add_argument(
+        "--phase-seconds",
+        type=float,
+        default=0.5,
+        help=(
+            "RANDOM/ELITE phase duration. Certified small-order targets are often "
+            "reached within a few seconds, so the quick-sweep default is 0.5 s."
+        ),
+    )
     p.add_argument(
         "--compactness-placement",
         choices=("before-weighted", "after-weighted"),
@@ -87,7 +100,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("results/sweeps/compactness_certified"),
+        default=Path("results/sweeps/compactness_certified_p05"),
     )
     p.add_argument("--force", action="store_true")
     p.add_argument("--dry-run", action="store_true")
@@ -163,7 +176,8 @@ def main() -> int:
             cmd.append("--dry-run")
 
         print(
-            f"\n=== n={order} target={target} compactness_threshold={threshold} ===",
+            f"\n=== n={order} target={target} compactness_threshold={threshold} "
+            f"phase_seconds={args.phase_seconds} ===",
             flush=True,
         )
         print(" ".join(cmd), flush=True)
@@ -193,6 +207,17 @@ def main() -> int:
 
     if args.dry_run:
         return rc
+
+    # Never replace a previously valid combined summary with a partial/empty one
+    # when an order-level benchmark failed (for example because its output
+    # directory already existed). The order-level summaries remain untouched.
+    if rc != 0 or len(combined) != len(targets):
+        print(
+            "Combined summary not written because one or more order benchmarks failed; "
+            "use a fresh --output-dir or explicitly use --force.",
+            flush=True,
+        )
+        return rc or 2
 
     payload = {
         "schema_version": "graphoratory.heg_compactness_quick_sweep.v1",
