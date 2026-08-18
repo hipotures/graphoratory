@@ -14,6 +14,10 @@ behavior of vertex-near across orders:
     n=10: F=8 -> 4
     n=11: F=6 -> 2
 
+The default placement is ``after-weighted`` so this experiment continues the
+latest baseline-vs-vertex-mean comparison and changes only the sign/direction of
+the geometry criterion.
+
 Every repeat uses the existing conditioned-plateau benchmark machinery: one
 common warm-up graph per repeat, the same search seed for every arm, and
 ELITE-only measured parent selection. Only the direction of the vertex metric
@@ -68,6 +72,8 @@ def main() -> int:
     if not _has_option("--child-script"):
         child = Path(__file__).with_name("heg_vertex_direction_plateau_mutator.py").resolve()
         sys.argv.extend(["--child-script", str(child)])
+    if not _has_option("--compactness-placement"):
+        sys.argv.extend(["--compactness-placement", "after-weighted"])
 
     return int(sweep.main())
 
